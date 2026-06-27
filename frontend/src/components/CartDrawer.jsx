@@ -73,7 +73,7 @@ const CartDrawer = ({
                         <div className="flex-1 overflow-y-auto pt-0 md:pt-3 px-4 -mx-4">
                             <div className="flex items-center justify-center h-full text-center">
                                 <div className="text-center space-y-6 mx-auto p-6 max-w-80 w-full">
-                                    <img alt="Empty cart illustration" loading="lazy" width="212" height="200" decoding="async" className="block mx-auto w-50 h-50 object-center object-cover" src="/illustrations/amico.png" />
+                                    <img alt="Empty cart illustration" loading="lazy" width="212" height="200" decoding="async" className="block mx-auto w-50 h-50 object-center object-cover" src="/logos/amico.png" />
                                     <h3 className="mt-6 text-base font-semibold text-[#0f172a]">Ooops! No items found.</h3>
                                     <p className="mt-1 text-sm text-[#64748b]">You don't have any items in your cart yet!</p>
                                 </div>
