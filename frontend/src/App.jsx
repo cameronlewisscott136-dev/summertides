@@ -89,21 +89,20 @@ const App = () => {
 
   // Handle payment initiation - UPDATED to include email
   const handlePaymentInitiate = async () => {
-    const result = await handleInitiatePayment(
-      paymentData.phoneNumber,
-      paymentData.email,
-      cartTotal
-    );
-    if (result.success) {
-      setIsPaymentModalOpen(false);
-      // Reset payment data
-      setPaymentData({
-        phoneNumber: '',
-        email: '',
-        amount: 0,
-      });
-    }
-  };
+  const result = await handleInitiatePayment(
+    paymentData.phoneNumber,
+    paymentData.email,  // Pass email
+    cartTotal
+  );
+  if (result.success) {
+    setIsPaymentModalOpen(false);
+    setPaymentData({
+      phoneNumber: '',
+      email: '',
+      amount: 0,
+    });
+  }
+};
 
   // Debug: Log cart state changes
   useEffect(() => {
