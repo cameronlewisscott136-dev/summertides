@@ -53,7 +53,7 @@ export const useCart = (sessionId) => {
       return true;
     } catch (error) {
       console.error('Error adding to cart:', error);
-      toast.success('Failed to add item to cart.');
+      toast.error('Failed to add item to cart.');
       return false;
     } finally {
       setIsLoading(false);
