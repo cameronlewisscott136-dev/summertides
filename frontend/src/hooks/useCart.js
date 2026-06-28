@@ -49,7 +49,7 @@ export const useCart = (sessionId) => {
       setCartItems(cart.items || []);
       setCartTotal(cart.totalAmount || 0);
       setCartCount(cart.items?.length || 0);
-      alert('Item added to cart successfully!');
+      toast.success('Item added to cart successfully!');
       return true;
     } catch (error) {
       console.error('Error adding to cart:', error);
