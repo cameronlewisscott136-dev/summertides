@@ -39,7 +39,9 @@ app.use(cors({
     origin: [
         'http://localhost:5173', 
         'https://graceful-hotteok-15efe8.netlify.app',
-        'https://graceful-hotteok-15efe8.netlify.app/api'
+        'https://graceful-hotteok-15efe8.netlify.app/api',
+        'https://summertides-eight.vercel.app',
+        'https://summertides-eight.vercel.app/api'
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
