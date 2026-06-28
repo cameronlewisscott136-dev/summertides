@@ -1,6 +1,7 @@
 // frontend/src/hooks/useCart.js
 import { useState, useEffect } from 'react';
 import { cartAPI, paymentAPI } from '../services/api';
+import { toast } from 'react-toastify';
 
 export const useCart = (sessionId) => {
   const [cartCount, setCartCount] = useState(0);
@@ -52,7 +53,7 @@ export const useCart = (sessionId) => {
       return true;
     } catch (error) {
       console.error('Error adding to cart:', error);
-      alert('Failed to add item to cart.');
+      toast.success('Failed to add item to cart.');
       return false;
     } finally {
       setIsLoading(false);
@@ -120,11 +121,11 @@ export const useCart = (sessionId) => {
 
       pollPaymentStatus(checkoutRequestID);
 
-      alert('Payment initiated! Please check your phone for the M-Pesa prompt.');
+      toast.success('Payment initiated! Please check your phone for the M-Pesa prompt.');
       return { success: true, checkoutRequestID };
     } catch (error) {
       console.error('Error initiating payment:', error);
-      alert('Failed to initiate payment. Please try again.');
+      toast.error('Failed to initiate payment. Please try again.');
       return { success: false };
     } finally {
       setIsLoading(false);
@@ -148,7 +149,7 @@ export const useCart = (sessionId) => {
             status: 'completed',
             mpesaReceiptNumber: status.mpesaReceiptNumber,
           });
-          alert('Payment successful! 🎉 Your tickets have been confirmed.');
+          toast.success('Payment successful! 🎉 Your tickets have been confirmed.');
           loadCart();
         } else if (status.status === 'failed') {
           clearInterval(interval);
@@ -156,10 +157,10 @@ export const useCart = (sessionId) => {
             ...paymentStatus,
             status: 'failed',
           });
-          alert('Payment failed. Please try again.');
+          toast.error('Payment failed. Please try again.');
         } else if (attempts >= maxAttempts) {
           clearInterval(interval);
-          alert('Payment is taking too long. Please check your M-Pesa app.');
+          toast.error('Payment is taking too long. Please check your M-Pesa app.');
         }
       } catch (error) {
         console.error('Error checking payment status:', error);
