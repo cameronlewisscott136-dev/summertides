@@ -1,150 +1,344 @@
-// frontend/src/components/PaymentModal.jsx
+// src/components/PaymentModal.jsx
 import { useState } from 'react';
 
 const PaymentModal = ({
     isPaymentModalOpen,
     setIsPaymentModalOpen,
     cartTotal,
-    paymentData,
-    setPaymentData,
-    handleInitiatePayment,
-    isLoading
+    cartItems,
+    setIsCartOpen,
+    closeCart
 }) => {
-    const [emailError, setEmailError] = useState('');
+    const [formData, setFormData] = useState({
+        fullName: '',
+        email: '',
+        phoneNumber: '',
+        paymentMethod: 'mpesa', // 'mpesa' or 'airtel'
+        transactionCode: '',
+        amount: cartTotal,
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errors, setErrors] = useState({});
+    const [isSuccess, setIsSuccess] = useState(false);
 
     if (!isPaymentModalOpen) return null;
 
-    const validateEmail = (email) => {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
+    // Payment details - YEA Bank Account
+    const paymentDetails = {
+        mpesa: {
+            name: 'M-Pesa',
+            paybill: '400200', // Co-operative Bank Paybill
+            accountNumber: 'YEA2026', // Your account reference
+            instructions: 'Go to M-Pesa > Lipa na M-Pesa > Paybill > Enter Paybill Number'
+        },
+        airtel: {
+            name: 'Airtel Money',
+            paybill: '123456', // Your Airtel Money Paybill
+            accountNumber: 'YEA2026',
+            instructions: 'Go to Airtel Money > Paybill > Enter Paybill Number'
+        }
     };
 
-    const handleEmailChange = (e) => {
-        const email = e.target.value;
-        setPaymentData({ ...paymentData, email: email });
+    const validateForm = () => {
+        const newErrors = {};
+        if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
+        if (!formData.email.trim()) {
+            newErrors.email = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            newErrors.email = 'Please enter a valid email address';
+        }
+        if (!formData.phoneNumber.trim()) {
+            newErrors.phoneNumber = 'Phone number is required';
+        } else if (!/^[0-9]{10,12}$/.test(formData.phoneNumber.replace(/^\+/, ''))) {
+            newErrors.phoneNumber = 'Please enter a valid phone number';
+        }
+        if (!formData.transactionCode.trim()) {
+            newErrors.transactionCode = 'Transaction code is required';
+        }
+        return newErrors;
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
         
-        if (email && !validateEmail(email)) {
-            setEmailError('Please enter a valid email address');
-        } else {
-            setEmailError('');
+        const newErrors = validateForm();
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            // Send email with payment details
+            const emailData = {
+                to: 'yea@example.com', // YEA's email address
+                subject: 'New Ticket Payment - Summer Tides Festival',
+                html: `
+                    <h2>New Payment Received</h2>
+                    <p><strong>Customer Name:</strong> ${formData.fullName}</p>
+                    <p><strong>Email:</strong> ${formData.email}</p>
+                    <p><strong>Phone:</strong> ${formData.phoneNumber}</p>
+                    <p><strong>Payment Method:</strong> ${formData.paymentMethod.toUpperCase()}</p>
+                    <p><strong>Transaction Code:</strong> ${formData.transactionCode}</p>
+                    <p><strong>Amount:</strong> KES ${formData.amount.toLocaleString()}</p>
+                    <hr/>
+                    <h3>Tickets Purchased:</h3>
+                    <ul>
+                        ${cartItems.map(item => `
+                            <li>${item.name} x${item.quantity} = KES ${(item.price * item.quantity).toLocaleString()}</li>
+                        `).join('')}
+                    </ul>
+                    <p><strong>Total:</strong> KES ${formData.amount.toLocaleString()}</p>
+                    <hr/>
+                    <p>Please verify payment and send tickets to: ${formData.email}</p>
+                `
+            };
+
+            // Send email to YEA
+            const response = await fetch('/api/send-payment-notification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(emailData),
+            });
+
+            if (response.ok) {
+                setIsSuccess(true);
+                // Clear cart after successful submission
+                setTimeout(() => {
+                    setIsPaymentModalOpen(false);
+                    setIsCartOpen(false);
+                    // Reset form
+                    setFormData({
+                        fullName: '',
+                        email: '',
+                        phoneNumber: '',
+                        paymentMethod: 'mpesa',
+                        transactionCode: '',
+                        amount: cartTotal,
+                    });
+                    setIsSuccess(false);
+                    alert('✅ Payment details submitted! We will verify and send your tickets shortly.');
+                }, 3000);
+            } else {
+                throw new Error('Failed to send notification');
+            }
+        } catch (error) {
+            console.error('Error submitting payment:', error);
+            alert('Failed to submit payment details. Please try again or contact support.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
-    const handlePayment = () => {
-        if (!paymentData.email) {
-            setEmailError('Email is required to receive your tickets');
-            return;
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: '' }));
         }
-        if (!validateEmail(paymentData.email)) {
-            setEmailError('Please enter a valid email address');
-            return;
-        }
-        handleInitiatePayment();
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[10px]">
-            <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-                <h2 className="text-2xl font-bold mb-2 text-[#0f172a]">Complete Payment</h2>
-                <p className="text-[#64748b] mb-4">Enter your details to complete the payment</p>
-
-                {/* YEA Bank Details */}
-                <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 mb-4">
-                    <div className="flex items-center gap-2 mb-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-teal-600">
-                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                        </svg>
-                        <span className="text-sm font-semibold text-teal-800">Payment Details</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[10px] p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+                {isSuccess ? (
+                    <div className="text-center py-8">
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <h3 className="text-xl font-bold text-[#0f172a]">Payment Submitted!</h3>
+                        <p className="text-[#64748b] mt-2">We'll verify your payment and send tickets to your email shortly.</p>
                     </div>
-                    <p className="text-xs text-teal-700">
-                        💰 Payment received by: <strong>{process.env.REACT_APP_YEA_BANK_NAME || 'Co-operative Bank of Kenya'}</strong>
-                    </p>
-                    <p className="text-xs text-teal-600 mt-1">
-                        📱 Paybill: <strong>{process.env.REACT_APP_MPESA_SHORTCODE || '400200'}</strong>
-                    </p>
-                    <p className="text-xs text-teal-600">
-                        📋 Account: <strong>{process.env.REACT_APP_YEA_ACCOUNT_NAME || '01103105063001'}</strong>
-                    </p>
-                </div>
+                ) : (
+                    <>
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-2xl font-bold text-[#0f172a]">Complete Your Payment</h2>
+                            <button
+                                onClick={() => {
+                                    setIsPaymentModalOpen(false);
+                                    setErrors({});
+                                }}
+                                className="text-[#64748b] hover:text-[#0f172a]"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
 
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-[#0f172a] mb-1">Amount</label>
-                        <div className="text-2xl font-bold text-teal-600">KES {cartTotal.toLocaleString()}</div>
-                    </div>
+                        <div className="mb-6">
+                            <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+                                <h4 className="text-sm font-semibold text-teal-800 mb-2">📋 Payment Instructions</h4>
+                                <p className="text-xs text-teal-700 mb-2">
+                                    <strong>1.</strong> Go to your M-Pesa or Airtel Money app<br/>
+                                    <strong>2.</strong> Select <strong>Paybill</strong> or <strong>Lipa na M-Pesa</strong><br/>
+                                    <strong>3.</strong> Enter Paybill: <strong>{paymentDetails[formData.paymentMethod].paybill}</strong><br/>
+                                    <strong>4.</strong> Enter Account Number: <strong>{paymentDetails[formData.paymentMethod].accountNumber}</strong><br/>
+                                    <strong>5.</strong> Enter Amount: <strong>KES {cartTotal.toLocaleString()}</strong><br/>
+                                    <strong>6.</strong> Enter your M-Pesa/Airtel PIN to confirm<br/>
+                                    <strong>7.</strong> Copy the confirmation code below
+                                </p>
+                            </div>
+                        </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-[#0f172a] mb-1">
-                            Email Address <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="email"
-                            value={paymentData.email || ''}
-                            onChange={handleEmailChange}
-                            placeholder="youremail@example.com"
-                            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition-colors ${
-                                emailError ? 'border-red-500 focus:ring-red-500' : 'border-[#e2e8f0]'
-                            }`}
-                        />
-                        {emailError && (
-                            <p className="text-xs text-red-500 mt-1">{emailError}</p>
-                        )}
-                        <p className="text-xs text-[#94a3b8] mt-1">Your tickets will be sent to this email</p>
-                    </div>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {/* Order Summary */}
+                            <div className="bg-gray-50 rounded-lg p-3">
+                                <h4 className="text-sm font-semibold text-[#0f172a] mb-2">Order Summary</h4>
+                                <div className="space-y-1">
+                                    {cartItems.map((item, index) => (
+                                        <div key={index} className="flex justify-between text-sm text-[#64748b]">
+                                            <span>{item.name} x{item.quantity}</span>
+                                            <span>KES {(item.price * item.quantity).toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                    <div className="border-t border-gray-200 pt-2 mt-2">
+                                        <div className="flex justify-between font-bold text-[#0f172a]">
+                                            <span>Total</span>
+                                            <span>KES {cartTotal.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-[#0f172a] mb-1">
-                            Phone Number <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="tel"
-                            value={paymentData.phoneNumber}
-                            onChange={(e) => setPaymentData({ ...paymentData, phoneNumber: e.target.value })}
-                            placeholder="254712345678"
-                            className="w-full px-4 py-2 border border-[#e2e8f0] rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                        />
-                        <p className="text-xs text-[#94a3b8] mt-1">Format: 254712345678 (without +)</p>
-                    </div>
-                </div>
+                            {/* Payment Method */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#0f172a] mb-1">
+                                    Payment Method <span className="text-red-500">*</span>
+                                </label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'mpesa' }))}
+                                        className={`p-3 rounded-lg border-2 text-center transition-colors ${
+                                            formData.paymentMethod === 'mpesa'
+                                                ? 'border-teal-500 bg-teal-50'
+                                                : 'border-gray-200 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <span className="text-lg">📱</span>
+                                        <p className="text-sm font-medium">M-Pesa</p>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'airtel' }))}
+                                        className={`p-3 rounded-lg border-2 text-center transition-colors ${
+                                            formData.paymentMethod === 'airtel'
+                                                ? 'border-teal-500 bg-teal-50'
+                                                : 'border-gray-200 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <span className="text-lg">📱</span>
+                                        <p className="text-sm font-medium">Airtel Money</p>
+                                    </button>
+                                </div>
+                            </div>
 
-                <div className="flex gap-3 mt-6">
-                    <button
-                        onClick={() => {
-                            setIsPaymentModalOpen(false);
-                            setEmailError('');
-                        }}
-                        className="flex-1 px-4 py-2 border border-[#e2e8f0] rounded-lg hover:bg-[#f1f5f9] transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handlePayment}
-                        disabled={
-                            !paymentData.phoneNumber || 
-                            paymentData.phoneNumber.length < 10 || 
-                            !paymentData.email ||
-                            !!emailError ||
-                            isLoading
-                        }
-                        className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isLoading ? 'Processing...' : 'Pay Now'}
-                    </button>
-                </div>
+                            {/* Full Name */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#0f172a] mb-1">
+                                    Full Name <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="fullName"
+                                    value={formData.fullName}
+                                    onChange={handleInputChange}
+                                    placeholder="John Doe"
+                                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                                        errors.fullName ? 'border-red-500' : 'border-[#e2e8f0]'
+                                    }`}
+                                />
+                                {errors.fullName && (
+                                    <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>
+                                )}
+                            </div>
 
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                    <p className="text-xs text-[#94a3b8] text-center flex items-center justify-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-                        Secured by M-Pesa & SSL Encryption
-                    </p>
-                    <p className="text-xs text-[#94a3b8] text-center mt-1">
-                        Payment received by <strong>{process.env.REACT_APP_YEA_BANK_NAME || 'Co-operative Bank of Kenya'}</strong>
-                    </p>
-                </div>
+                            {/* Email */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#0f172a] mb-1">
+                                    Email Address <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleInputChange}
+                                    placeholder="youremail@example.com"
+                                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                                        errors.email ? 'border-red-500' : 'border-[#e2e8f0]'
+                                    }`}
+                                />
+                                {errors.email && (
+                                    <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+                                )}
+                                <p className="text-xs text-[#94a3b8] mt-1">Tickets will be sent to this email</p>
+                            </div>
+
+                            {/* Phone Number */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#0f172a] mb-1">
+                                    Phone Number <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="tel"
+                                    name="phoneNumber"
+                                    value={formData.phoneNumber}
+                                    onChange={handleInputChange}
+                                    placeholder="254712345678"
+                                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                                        errors.phoneNumber ? 'border-red-500' : 'border-[#e2e8f0]'
+                                    }`}
+                                />
+                                {errors.phoneNumber && (
+                                    <p className="text-xs text-red-500 mt-1">{errors.phoneNumber}</p>
+                                )}
+                            </div>
+
+                            {/* Transaction Code */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#0f172a] mb-1">
+                                    M-Pesa/Airtel Confirmation Code <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="transactionCode"
+                                    value={formData.transactionCode}
+                                    onChange={handleInputChange}
+                                    placeholder="Enter the confirmation code from your app"
+                                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                                        errors.transactionCode ? 'border-red-500' : 'border-[#e2e8f0]'
+                                    }`}
+                                />
+                                {errors.transactionCode && (
+                                    <p className="text-xs text-red-500 mt-1">{errors.transactionCode}</p>
+                                )}
+                            </div>
+
+                            {/* Submit Button */}
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className={`w-full py-3 rounded-lg text-white font-semibold transition-colors ${
+                                    isSubmitting
+                                        ? 'bg-gray-400 cursor-not-allowed'
+                                        : 'bg-teal-600 hover:bg-teal-700'
+                                }`}
+                            >
+                                {isSubmitting ? 'Submitting...' : 'Submit Payment Details'}
+                            </button>
+
+                            <p className="text-xs text-[#94a3b8] text-center">
+                                Your payment details are secure. We'll verify your payment and send tickets to your email.
+                            </p>
+                        </form>
+                    </>
+                )}
             </div>
         </div>
     );
