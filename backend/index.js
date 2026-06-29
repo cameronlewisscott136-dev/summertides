@@ -42,7 +42,8 @@ app.use(cors({
         'https://graceful-hotteok-15efe8.netlify.app/api',
         'https://summertides-eight.vercel.app',
         'https://summertides-8xx07vmzk-cameronlewisscott136-devs-projects.vercel.app',
-        'https://summertides-nbcy0qhhf-cameronlewisscott136-devs-projects.vercel.app'
+        'https://summertides-nbcy0qhhf-cameronlewisscott136-devs-projects.vercel.app',
+        'https://summertides-o327u496s-cameronlewisscott136-devs-projects.vercel.app'
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
