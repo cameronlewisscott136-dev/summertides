@@ -1,13 +1,15 @@
 // src/components/PaymentModal.jsx
 import { useState } from 'react';
+import toast from 'react-toastify';
 
 const PaymentModal = ({
     isPaymentModalOpen,
     setIsPaymentModalOpen,
     cartTotal,
-    cartItems = [], // Default to empty array
+    cartItems = [],
     setIsCartOpen,
-    closeCart
+    closeCart,
+    sessionId
 }) => {
     const [formData, setFormData] = useState({
         fullName: '',
@@ -21,25 +23,25 @@ const PaymentModal = ({
     const [errors, setErrors] = useState({});
     const [isSuccess, setIsSuccess] = useState(false);
 
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
     if (!isPaymentModalOpen) return null;
 
-    // Payment details - YEA Bank Account
     const paymentDetails = {
         mpesa: {
             name: 'M-Pesa',
             paybill: '400200',
             accountNumber: 'YEA2026',
-            instructions: 'Go to M-Pesa > Lipa na M-Pesa > Paybill > Enter Paybill Number'
+            instructions: 'Go to M-Pesa > Lipa na M-Pesa > Paybill'
         },
         airtel: {
             name: 'Airtel Money',
             paybill: '123456',
             accountNumber: 'YEA2026',
-            instructions: 'Go to Airtel Money > Paybill > Enter Paybill Number'
+            instructions: 'Go to Airtel Money > Paybill'
         }
     };
 
-    // Ensure cartItems is an array
     const items = Array.isArray(cartItems) ? cartItems : [];
 
     const validateForm = () => {
@@ -67,49 +69,73 @@ const PaymentModal = ({
         const newErrors = validateForm();
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
+            // Show error toast for validation
+            toast.error('Please fix all errors before submitting.', {
+                duration: 3000,
+                position: 'top-center',
+            });
             return;
         }
 
         setIsSubmitting(true);
 
         try {
-            // In production, this would send an email to YEA
-            console.log('Payment Details:', {
-                customer: formData.fullName,
-                email: formData.email,
-                phone: formData.phoneNumber,
-                method: formData.paymentMethod,
-                transactionCode: formData.transactionCode,
-                amount: formData.amount,
-                items: items
+            const response = await fetch(`${API_URL}/payment/submit-payment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    fullName: formData.fullName,
+                    email: formData.email,
+                    phoneNumber: formData.phoneNumber,
+                    paymentMethod: formData.paymentMethod,
+                    transactionCode: formData.transactionCode,
+                    amount: cartTotal,
+                    cartItems: items,
+                    sessionId: sessionId
+                }),
             });
 
-            // Simulate sending email
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            const data = await response.json();
 
-            setIsSuccess(true);
-            
-            // Close everything after success
-            setTimeout(() => {
-                setIsPaymentModalOpen(false);
-                if (setIsCartOpen) setIsCartOpen(false);
-                if (closeCart) closeCart();
-                // Reset form
-                setFormData({
-                    fullName: '',
-                    email: '',
-                    phoneNumber: '',
-                    paymentMethod: 'mpesa',
-                    transactionCode: '',
-                    amount: cartTotal || 0,
+            if (response.ok) {
+                toast.success(data.message || '✅ Payment details submitted!', {
+                    duration: 5000,
+                    position: 'top-center',
+                    icon: '🎉',
                 });
-                setIsSuccess(false);
-                alert('✅ Payment details submitted! We will verify and send your tickets shortly.');
-            }, 3000);
+
+                setIsSuccess(true);
+                
+                setTimeout(() => {
+                    setIsPaymentModalOpen(false);
+                    if (setIsCartOpen) setIsCartOpen(false);
+                    if (closeCart) closeCart();
+                    setFormData({
+                        fullName: '',
+                        email: '',
+                        phoneNumber: '',
+                        paymentMethod: 'mpesa',
+                        transactionCode: '',
+                        amount: cartTotal || 0,
+                    });
+                    setIsSuccess(false);
+                }, 3000);
+
+            } else {
+                toast.error(data.message || 'Failed to submit payment. Please try again.', {
+                    duration: 4000,
+                    position: 'top-center',
+                });
+            }
 
         } catch (error) {
             console.error('Error submitting payment:', error);
-            alert('Failed to submit payment details. Please try again or contact support.');
+            toast.error('Network error. Please check your connection and try again.', {
+                duration: 4000,
+                position: 'top-center',
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -157,19 +183,18 @@ const PaymentModal = ({
                             <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
                                 <h4 className="text-sm font-semibold text-teal-800 mb-2">📋 Payment Instructions</h4>
                                 <p className="text-xs text-teal-700 mb-2">
-                                    <strong>1.</strong> Go to your M-Pesa or Airtel Money app<br/>
+                                    <strong>1.</strong> Go to your {paymentDetails[formData.paymentMethod].name} app<br/>
                                     <strong>2.</strong> Select <strong>Paybill</strong> or <strong>Lipa na M-Pesa</strong><br/>
                                     <strong>3.</strong> Enter Paybill: <strong>{paymentDetails[formData.paymentMethod].paybill}</strong><br/>
                                     <strong>4.</strong> Enter Account Number: <strong>{paymentDetails[formData.paymentMethod].accountNumber}</strong><br/>
                                     <strong>5.</strong> Enter Amount: <strong>KES {cartTotal?.toLocaleString() || 0}</strong><br/>
-                                    <strong>6.</strong> Enter your M-Pesa/Airtel PIN to confirm<br/>
+                                    <strong>6.</strong> Enter your PIN to confirm<br/>
                                     <strong>7.</strong> Copy the confirmation code below
                                 </p>
                             </div>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            {/* Order Summary */}
                             {items.length > 0 && (
                                 <div className="bg-gray-50 rounded-lg p-3">
                                     <h4 className="text-sm font-semibold text-[#0f172a] mb-2">Order Summary</h4>
@@ -190,7 +215,6 @@ const PaymentModal = ({
                                 </div>
                             )}
 
-                            {/* Payment Method */}
                             <div>
                                 <label className="block text-sm font-medium text-[#0f172a] mb-1">
                                     Payment Method <span className="text-red-500">*</span>
@@ -223,7 +247,6 @@ const PaymentModal = ({
                                 </div>
                             </div>
 
-                            {/* Full Name */}
                             <div>
                                 <label className="block text-sm font-medium text-[#0f172a] mb-1">
                                     Full Name <span className="text-red-500">*</span>
@@ -243,7 +266,6 @@ const PaymentModal = ({
                                 )}
                             </div>
 
-                            {/* Email */}
                             <div>
                                 <label className="block text-sm font-medium text-[#0f172a] mb-1">
                                     Email Address <span className="text-red-500">*</span>
@@ -264,7 +286,6 @@ const PaymentModal = ({
                                 <p className="text-xs text-[#94a3b8] mt-1">Tickets will be sent to this email</p>
                             </div>
 
-                            {/* Phone Number */}
                             <div>
                                 <label className="block text-sm font-medium text-[#0f172a] mb-1">
                                     Phone Number <span className="text-red-500">*</span>
@@ -284,10 +305,9 @@ const PaymentModal = ({
                                 )}
                             </div>
 
-                            {/* Transaction Code */}
                             <div>
                                 <label className="block text-sm font-medium text-[#0f172a] mb-1">
-                                    M-Pesa/Airtel Confirmation Code <span className="text-red-500">*</span>
+                                    Transaction Code <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="text"
@@ -304,7 +324,6 @@ const PaymentModal = ({
                                 )}
                             </div>
 
-                            {/* Submit Button */}
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
