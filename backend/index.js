@@ -36,15 +36,7 @@ app.use('/api', limiter);
 // ============================================
 
 app.use(cors({
-    origin: [
-        'http://localhost:5173', 
-        'https://graceful-hotteok-15efe8.netlify.app',
-        'https://graceful-hotteok-15efe8.netlify.app/api',
-        'https://summertides-eight.vercel.app',
-        'https://summertides-8xx07vmzk-cameronlewisscott136-devs-projects.vercel.app',
-        'https://summertides-nbcy0qhhf-cameronlewisscott136-devs-projects.vercel.app',
-        'https://summertides-o327u496s-cameronlewisscott136-devs-projects.vercel.app'
-    ],
+    origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
