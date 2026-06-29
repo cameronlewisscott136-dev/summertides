@@ -61,10 +61,10 @@ const PaymentModal = ({
                         💰 Payment received by: <strong>{process.env.REACT_APP_YEA_BANK_NAME || 'Co-operative Bank of Kenya'}</strong>
                     </p>
                     <p className="text-xs text-teal-600 mt-1">
-                        📱 Paybill: <strong>{process.env.REACT_APP_MPESA_SHORTCODE || 'XXXXXX'}</strong>
+                        📱 Paybill: <strong>{process.env.REACT_APP_MPESA_SHORTCODE || '400200'}</strong>
                     </p>
                     <p className="text-xs text-teal-600">
-                        📋 Account: <strong>{process.env.REACT_APP_YEA_ACCOUNT_NAME || 'YEA - Your Event Africa'}</strong>
+                        📋 Account: <strong>{process.env.REACT_APP_YEA_ACCOUNT_NAME || 'Summertides Event 2026'}</strong>
                     </p>
                 </div>
 
