@@ -126,15 +126,14 @@ const App = () => {
           setSearchQuery={setSearchQuery}
         />
 
-        <PaymentModal
+        <PaymentModal 
           isPaymentModalOpen={isPaymentModalOpen}
           setIsPaymentModalOpen={setIsPaymentModalOpen}
           cartTotal={cartTotal}
-          paymentData={paymentData}
-          setPaymentData={setPaymentData}
-          handleInitiatePayment={handlePaymentInitiate}
-          isLoading={isLoading}
-        />
+          cartItems={cartItems}  // ADD THIS - pass cartItems
+          setIsCartOpen={setIsCartOpen}
+          closeCart={closeCart}
+      />
 
         <EventModal
           isEventModalOpen={isEventModalOpen}
