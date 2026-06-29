@@ -1,14 +1,21 @@
-// backend/src/routes/payment.js
+// backend/routes/payment.js
 const express = require('express');
 const router = express.Router();
-const { 
-  initiatePayment, 
-  paymentCallback, 
-  checkPaymentStatus 
+const {
+    submitManualPayment,
+    getPayments,
+    getPaymentByOrderId,
+    updatePaymentStatus,
+    deletePayment
 } = require('../controllers/paymentController');
 
-router.post('/initiate', initiatePayment);
-router.post('/callback', paymentCallback);
-router.get('/status/:checkoutRequestID', checkPaymentStatus);
+// Manual payment submission (M-Pesa/Airtel)
+router.post('/submit-payment', submitManualPayment);
+
+// Admin routes
+router.get('/payments', getPayments);
+router.get('/payments/:orderId', getPaymentByOrderId);
+router.put('/payments/:orderId/status', updatePaymentStatus);
+router.delete('/payments/:orderId', deletePayment);
 
 module.exports = router;
