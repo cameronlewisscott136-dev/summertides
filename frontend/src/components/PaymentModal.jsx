@@ -64,7 +64,7 @@ const PaymentModal = ({
                         📱 Paybill: <strong>{process.env.REACT_APP_MPESA_SHORTCODE || '400200'}</strong>
                     </p>
                     <p className="text-xs text-teal-600">
-                        📋 Account: <strong>{process.env.REACT_APP_YEA_ACCOUNT_NAME || 'Summertides Event 2026'}</strong>
+                        📋 Account: <strong>{process.env.REACT_APP_YEA_ACCOUNT_NAME || '01103105063001'}</strong>
                     </p>
                 </div>
 
