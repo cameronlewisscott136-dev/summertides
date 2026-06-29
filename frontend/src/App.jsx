@@ -133,6 +133,7 @@ const App = () => {
           cartItems={cartItems}  // ADD THIS - pass cartItems
           setIsCartOpen={setIsCartOpen}
           closeCart={closeCart}
+          sessionId={sessionId}
       />
 
         <EventModal
