@@ -2,29 +2,21 @@ const axios = require('axios');
 
 class PayHeroService {
     constructor() {
-        // Use Basic Auth Token (NOT Bearer token)
         this.authToken = process.env.PAYHERO_BASIC_AUTH_TOKEN;
-
-        // Channel (Till/Paybill ID)
         this.channelId = process.env.PAYHERO_CHANNEL_ID;
-
-        // Correct PayHero base URL (Lipwa API v2)
-        this.baseUrl =
-            process.env.PAYHERO_API_URL ||
-            'https://backend.payhero.co.ke/api/v2';
+        this.baseUrl = process.env.PAYHERO_API_URL || 'https://backend.payhero.co.ke/api/v2';
 
         console.log('========================================');
         console.log('🏦 PayHero Service Initialized');
         console.log(`📱 Channel ID: ${this.channelId}`);
+        console.log(`🔑 Auth Token: ${this.authToken ? '✅ Set' : '❌ Missing'}`);
+        console.log(`🌐 API URL: ${this.baseUrl}`);
         console.log('========================================');
     }
 
-    // ================================
-    // 🚀 INITIATE STK PUSH
-    // ================================
     async initiateSTKPush(phoneNumber, amount, externalReference, customerName) {
         try {
-            // Format phone number to 2547XXXXXXXX
+            // Format phone number
             let formattedPhone = phoneNumber.replace(/^\+/, '');
             if (formattedPhone.startsWith('0')) {
                 formattedPhone = '254' + formattedPhone.substring(1);
@@ -39,23 +31,26 @@ class PayHeroService {
 
             const payload = {
                 amount: Math.round(amount),
-                phone: 254792231811,
+                phone: formattedPhone,
                 channel_id: this.channelId,
                 external_reference: externalReference,
                 customer_name: customerName || 'Customer',
                 callback_url: `${process.env.BACKEND_URL}/api/payment/callback`
             };
 
+            console.log('📤 Sending to PayHero...');
+
             const response = await axios.post(
                 `${this.baseUrl}/payments`,
                 payload,
                 {
                     headers: {
-                        Authorization: this.authToken,
+                        'Authorization': this.authToken,
                         'Content-Type': 'application/json'
                     }
                 }
             );
+
             console.log('✅ STK Push initiated successfully');
             console.log('Response:', response.data);
             console.log('----------------------------------------\n');
@@ -66,28 +61,26 @@ class PayHeroService {
                 formattedPhone
             };
         } catch (error) {
-            console.error(
-                '❌ PayHero STK Push Error:',
-                error.response?.data || error.message
-            );
+            console.error('❌ PayHero STK Push Error:');
+            console.error('Status:', error.response?.status);
+            console.error('Data:', error.response?.data);
+            console.error('Message:', error.message);
 
             return {
                 success: false,
-                error: error.response?.data || error.message
+                error: error.response?.data || error.message,
+                status: error.response?.status
             };
         }
     }
 
-    // ================================
-    // 📊 CHECK TRANSACTION STATUS
-    // ================================
     async checkTransactionStatus(externalReference) {
         try {
             const response = await axios.get(
                 `${this.baseUrl}/transactions/${externalReference}`,
                 {
                     headers: {
-                        Authorization: this.authToken
+                        'Authorization': this.authToken
                     }
                 }
             );
@@ -97,11 +90,7 @@ class PayHeroService {
                 data: response.data
             };
         } catch (error) {
-            console.error(
-                '❌ Status check error:',
-                error.response?.data || error.message
-            );
-
+            console.error('❌ Status check error:', error.response?.data || error.message);
             return {
                 success: false,
                 error: error.response?.data || error.message
