@@ -1,92 +1,33 @@
-// backend/models/Payment.js
-const mongoose = require('mongoose');
+// backend/routes/payment.js
+const express = require('express');
+const router = express.Router();
+const {
+    initiatePayment,
+    payheroCallback,
+    checkPaymentStatus,
+    getPaymentByOrderId,
+    submitManualPayment,
+    getPayments,
+    updatePaymentStatus,
+} = require('../controllers/paymentController');
 
-const paymentSchema = new mongoose.Schema({
-    orderId: {
-        type: String,
-        required: true,
-        unique: true,
-    },
-    // PayHero transaction reference
-    externalReference: {
-        type: String,
-        unique: true,
-        sparse: true,
-    },
-    phoneNumber: {
-        type: String,
-        required: true,
-    },
-    email: {
-        type: String,
-        required: true,
-    },
-    amount: {
-        type: Number,
-        required: true,
-    },
-    customerName: String,
-    description: String,
-    sessionId: String,
+// PayHero STK Push
+router.post('/initiate', initiatePayment);
 
-    // Payment status
-    status: {
-        type: String,
-        enum: ['pending', 'completed', 'failed', 'timeout', 'cancelled'],
-        default: 'pending',
-    },
-    mpesaReceiptNumber: String,
-    transactionDate: Date,
-    resultCode: Number,
-    resultDesc: String,
+// PayHero Callback URL
+router.post('/payhero-callback', payheroCallback);
 
-    // PayHero specific
-    payheroTransactionId: String,
-    paymentChannel: {
-        type: String,
-        default: 'mpesa',
-    },
+// Check payment status
+router.get('/status/:externalReference', checkPaymentStatus);
 
-    // Cart items
-    cartItems: [{
-        id: String,
-        name: String,
-        price: Number,
-        quantity: Number,
-        type: String,
-        eventId: String,
-        ticketId: String,
-    }],
+// Get payment by order ID
+router.get('/order/:orderId', getPaymentByOrderId);
 
-    // YEA settlement details
-    settlementBank: {
-        type: String,
-        default: process.env.YEA_BANK_NAME || 'Co-operative Bank of Kenya',
-    },
-    settlementAccount: {
-        type: String,
-        default: process.env.YEA_ACCOUNT_NAME || 'YEA - Your Event Africa',
-    },
+// Manual payment submission (fallback)
+router.post('/submit-payment', submitManualPayment);
 
-    ticketSent: {
-        type: Boolean,
-        default: false,
-    },
-    ticketSentAt: Date,
+// Admin routes
+router.get('/payments', getPayments);
+router.put('/payments/:orderId/status', updatePaymentStatus);
 
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now,
-    },
-});
-
-paymentSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
-    next();
-});
-
-module.exports = mongoose.model('Payment', paymentSchema);
+module.exports = router;
