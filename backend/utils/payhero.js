@@ -13,10 +13,6 @@ class PayHeroService {
             process.env.PAYHERO_API_URL ||
             'https://backend.payhero.co.ke/api/v2';
 
-        console.log("PAYHERO TOKEN:", process.env.PAYHERO_BASIC_AUTH_TOKEN);
-console.log("CHANNEL ID:", process.env.PAYHERO_CHANNEL_ID);
-console.log("BASE URL:", this.baseUrl);
-
         console.log('========================================');
         console.log('🏦 PayHero Service Initialized');
         console.log(`📱 Channel ID: ${this.channelId}`);
@@ -47,21 +43,19 @@ console.log("BASE URL:", this.baseUrl);
                 channel_id: this.channelId,
                 external_reference: externalReference,
                 customer_name: customerName || 'Customer',
-                callback_url: `${process.env.BACKEND_URL}/api/payment/callback`
+                callback_url: `${process.env.BACKEND_URL}/payment/callback`
             };
 
             const response = await axios.post(
-                `${this.baseUrl}/payments/stk-push`,
+                `${this.baseUrl}/payments`,
                 payload,
                 {
                     headers: {
-                        // IMPORTANT: Basic Auth Token (NOT Bearer)
                         Authorization: this.authToken,
                         'Content-Type': 'application/json'
                     }
                 }
             );
-
             console.log('✅ STK Push initiated successfully');
             console.log('Response:', response.data);
             console.log('----------------------------------------\n');
