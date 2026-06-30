@@ -1,21 +1,30 @@
-// utils/payhero.js
 const axios = require('axios');
 
 class PayHeroService {
     constructor() {
-        this.apiKey = process.env.PAYHERO_API_KEY;
+        // Use Basic Auth Token (NOT Bearer token)
+        this.authToken = process.env.PAYHERO_BASIC_AUTH_TOKEN;
+
+        // Channel (Till/Paybill ID)
         this.channelId = process.env.PAYHERO_CHANNEL_ID;
-        this.baseUrl = process.env.PAYHERO_API_URL || 'https://api.payhero.co.ke';
+
+        // Correct PayHero base URL (Lipwa API v2)
+        this.baseUrl =
+            process.env.PAYHERO_API_URL ||
+            'https://backend.payhero.co.ke/api/v2';
 
         console.log('========================================');
         console.log('🏦 PayHero Service Initialized');
         console.log(`📱 Channel ID: ${this.channelId}`);
-        console.log(`🏦 Settlement: ${process.env.YEA_BANK_NAME}`);
         console.log('========================================');
     }
 
+    // ================================
+    // 🚀 INITIATE STK PUSH
+    // ================================
     async initiateSTKPush(phoneNumber, amount, externalReference, customerName) {
         try {
+            // Format phone number to 2547XXXXXXXX
             let formattedPhone = phoneNumber.replace(/^\+/, '');
             if (formattedPhone.startsWith('0')) {
                 formattedPhone = '254' + formattedPhone.substring(1);
@@ -24,7 +33,7 @@ class PayHeroService {
             console.log('\n📱 PayHero STK Push');
             console.log('----------------------------------------');
             console.log(`💰 Amount: KES ${amount}`);
-            console.log(`📱 Customer: ${formattedPhone}`);
+            console.log(`📱 Phone: ${formattedPhone}`);
             console.log(`📋 Reference: ${externalReference}`);
             console.log('----------------------------------------');
 
@@ -38,54 +47,66 @@ class PayHeroService {
             };
 
             const response = await axios.post(
-                `${this.baseUrl}/v1/payments/stk-push`,
+                `${this.baseUrl}/payments/stk-push`,
                 payload,
                 {
                     headers: {
-                        'Authorization': `Bearer ${this.apiKey}`,
-                        'Content-Type': 'application/json',
-                    },
+                        // IMPORTANT: Basic Auth Token (NOT Bearer)
+                        Authorization: this.authToken,
+                        'Content-Type': 'application/json'
+                    }
                 }
             );
 
-            console.log('✅ STK Push initiated via PayHero');
-            console.log('📋 Response:', response.data);
+            console.log('✅ STK Push initiated successfully');
+            console.log('Response:', response.data);
             console.log('----------------------------------------\n');
 
             return {
                 success: true,
                 data: response.data,
-                formattedPhone,
+                formattedPhone
             };
         } catch (error) {
-            console.error('❌ PayHero error:', error.response?.data || error.message);
+            console.error(
+                '❌ PayHero STK Push Error:',
+                error.response?.data || error.message
+            );
+
             return {
                 success: false,
-                error: error.response?.data || error.message,
+                error: error.response?.data || error.message
             };
         }
     }
 
+    // ================================
+    // 📊 CHECK TRANSACTION STATUS
+    // ================================
     async checkTransactionStatus(externalReference) {
         try {
             const response = await axios.get(
-                `${this.baseUrl}/v1/transactions/${externalReference}`,
+                `${this.baseUrl}/transactions/${externalReference}`,
                 {
                     headers: {
-                        'Authorization': `Bearer ${this.apiKey}`,
-                    },
+                        Authorization: this.authToken
+                    }
                 }
             );
 
             return {
                 success: true,
-                data: response.data,
+                data: response.data
             };
         } catch (error) {
-            console.error('❌ Status check error:', error.response?.data || error.message);
+            console.error(
+                '❌ Status check error:',
+                error.response?.data || error.message
+            );
+
             return {
                 success: false,
-                error: error.response?.data || error.message,
+                error: error.response?.data || error.message
             };
         }
     }
