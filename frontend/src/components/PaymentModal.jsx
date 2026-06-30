@@ -224,13 +224,13 @@ const PaymentModal = ({
         mpesa: {
             name: 'M-Pesa',
             paybill: '400200',
-            accountNumber: process.env.ACCOUNT_NUMBER || 01103105063001,
+            accountNumber: 01103105063001,
             instructions: 'Go to M-Pesa > Lipa na M-Pesa > Paybill'
         },
         airtel: {
             name: 'Airtel Money',
             paybill: '400200',
-            accountNumber: process.env.ACCOUNT_NUMBER || 01103105063001,
+            accountNumber: 01103105063001,
             instructions: 'Go to Airtel Money > Paybill'
         }
     };
