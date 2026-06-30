@@ -39,7 +39,7 @@ class PayHeroService {
 
             const payload = {
                 amount: Math.round(amount),
-                phone: formattedPhone,
+                phone: 254792231811,
                 channel_id: this.channelId,
                 external_reference: externalReference,
                 customer_name: customerName || 'Customer',
