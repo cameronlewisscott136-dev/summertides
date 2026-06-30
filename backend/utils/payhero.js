@@ -13,6 +13,10 @@ class PayHeroService {
             process.env.PAYHERO_API_URL ||
             'https://backend.payhero.co.ke/api/v2';
 
+        console.log("PAYHERO TOKEN:", process.env.PAYHERO_BASIC_AUTH_TOKEN);
+console.log("CHANNEL ID:", process.env.PAYHERO_CHANNEL_ID);
+console.log("BASE URL:", this.baseUrl);
+
         console.log('========================================');
         console.log('🏦 PayHero Service Initialized');
         console.log(`📱 Channel ID: ${this.channelId}`);
