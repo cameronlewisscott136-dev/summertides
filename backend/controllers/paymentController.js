@@ -1,9 +1,11 @@
-// backend/controllers/paymentController.js
+// controllers/paymentController.js
 const Payment = require('../models/Payment');
 const Cart = require('../models/Cart');
 const payheroService = require('../utils/payhero');
 
-// Initiate PayHero STK Push
+// ============================================
+// PAYHERO STK PUSH - NEW
+// ============================================
 const initiatePayment = async (req, res) => {
     try {
         const { phoneNumber, email, amount, description, sessionId, customerName } = req.body;
@@ -14,14 +16,13 @@ const initiatePayment = async (req, res) => {
         console.log(`📱 Phone: ${phoneNumber}`);
         console.log(`📧 Email: ${email}`);
         console.log(`💰 Amount: KES ${amount}`);
-        console.log(`🏦 Settlement: ${process.env.YEA_BANK_NAME}`);
         console.log('========================================\n');
 
         // Validate
         if (!phoneNumber || !amount || !email) {
             return res.status(400).json({
                 success: false,
-                message: 'Phone number, email, and amount are required',
+                message: 'Phone number, email, and amount are required'
             });
         }
 
@@ -29,14 +30,14 @@ const initiatePayment = async (req, res) => {
         if (!emailRegex.test(email)) {
             return res.status(400).json({
                 success: false,
-                message: 'Please enter a valid email address',
+                message: 'Please enter a valid email address'
             });
         }
 
         if (amount < 1) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid amount',
+                message: 'Invalid amount'
             });
         }
 
@@ -45,7 +46,7 @@ const initiatePayment = async (req, res) => {
         if (!cart || cart.items.length === 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Cart is empty',
+                message: 'Cart is empty'
             });
         }
 
@@ -64,7 +65,7 @@ const initiatePayment = async (req, res) => {
             return res.status(500).json({
                 success: false,
                 message: 'Failed to initiate payment',
-                error: result.error,
+                error: result.error
             });
         }
 
@@ -98,7 +99,6 @@ const initiatePayment = async (req, res) => {
         console.log('✅ Payment record saved');
         console.log(`📋 Order ID: ${orderId}`);
         console.log(`📱 External Ref: ${externalReference}`);
-        console.log(`💰 Money will settle to: ${process.env.YEA_BANK_NAME}`);
         console.log('========================================\n');
 
         res.json({
@@ -106,35 +106,32 @@ const initiatePayment = async (req, res) => {
             data: {
                 orderId,
                 externalReference,
-                message: 'STK Push initiated. Please check your phone for the M-Pesa prompt.',
-                settlement: {
-                    bank: process.env.YEA_BANK_NAME || 'Co-operative Bank of Kenya',
-                    account: process.env.YEA_ACCOUNT_NAME || 'YEA - Your Event Africa',
-                },
-            },
+                message: 'STK Push initiated. Check your phone for M-Pesa prompt.'
+            }
         });
 
     } catch (error) {
-        console.error('❌ Payment initiation error:', error);
+        console.error('❌ Payment error:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to initiate payment',
+            message: error.message || 'Failed to initiate payment'
         });
     }
 };
 
-// PayHero Callback (M-Pesa confirmation)
+// ============================================
+// PAYHERO CALLBACK - NEW
+// ============================================
 const payheroCallback = async (req, res) => {
     try {
         console.log('\n========================================');
-        console.log('📞 PAYHERO CALLBACK RECEIVED');
+        console.log('📞 PAYHERO CALLBACK');
         console.log('========================================');
         console.log(JSON.stringify(req.body, null, 2));
 
         const { external_reference, status, mpesa_receipt, amount, phone } = req.body;
 
         if (!external_reference) {
-            console.error('❌ Missing external reference');
             return res.status(400).json({ success: false, message: 'Missing external reference' });
         }
 
@@ -151,9 +148,6 @@ const payheroCallback = async (req, res) => {
             console.log(`📱 M-Pesa Receipt: ${mpesa_receipt}`);
             console.log(`🏦 Settlement: ${payment.settlementBank}`);
             console.log(`📧 Email: ${payment.email}`);
-            console.log(`🎫 Tickets: ${payment.cartItems.map(item => 
-                `${item.name} x${item.quantity}`
-            ).join(', ')}`);
 
             payment.status = 'completed';
             payment.mpesaReceiptNumber = mpesa_receipt;
@@ -171,7 +165,7 @@ const payheroCallback = async (req, res) => {
                     { items: [], totalAmount: 0 },
                     { new: true }
                 );
-                console.log('✅ Cart cleared for session:', payment.sessionId);
+                console.log('✅ Cart cleared');
             }
 
         } else if (status === 'FAILED') {
@@ -189,7 +183,7 @@ const payheroCallback = async (req, res) => {
         } else if (status === 'CANCELLED') {
             console.log('\n🚫 PAYMENT CANCELLED');
             payment.status = 'cancelled';
-            payment.resultDesc = 'Payment cancelled by user';
+            payment.resultDesc = 'Cancelled by user';
             await payment.save();
         }
 
@@ -202,19 +196,19 @@ const payheroCallback = async (req, res) => {
     }
 };
 
-// Check payment status
+// ============================================
+// CHECK PAYMENT STATUS - UPDATED
+// ============================================
 const checkPaymentStatus = async (req, res) => {
     try {
         const { externalReference } = req.params;
-
-        console.log(`🔍 Checking payment: ${externalReference}`);
 
         const payment = await Payment.findOne({ externalReference });
 
         if (!payment) {
             return res.status(404).json({
                 success: false,
-                message: 'Payment not found',
+                message: 'Payment not found'
             });
         }
 
@@ -234,6 +228,8 @@ const checkPaymentStatus = async (req, res) => {
                     payment.status = 'failed';
                 } else if (txData.status === 'TIMEOUT') {
                     payment.status = 'timeout';
+                } else if (txData.status === 'CANCELLED') {
+                    payment.status = 'cancelled';
                 }
                 await payment.save();
             }
@@ -246,24 +242,22 @@ const checkPaymentStatus = async (req, res) => {
                 mpesaReceiptNumber: payment.mpesaReceiptNumber,
                 transactionDate: payment.transactionDate,
                 email: payment.email,
-                ticketSent: payment.ticketSent,
-                settlement: {
-                    bank: payment.settlementBank,
-                    account: payment.settlementAccount,
-                },
-            },
+                ticketSent: payment.ticketSent
+            }
         });
 
     } catch (error) {
         console.error('❌ Status check error:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to check payment status',
+            message: error.message || 'Failed to check payment status'
         });
     }
 };
 
-// Get payment by order ID
+// ============================================
+// GET PAYMENT BY ORDER ID - KEPT
+// ============================================
 const getPaymentByOrderId = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -272,107 +266,45 @@ const getPaymentByOrderId = async (req, res) => {
         if (!payment) {
             return res.status(404).json({
                 success: false,
-                message: 'Payment not found',
+                message: 'Payment not found'
             });
         }
 
         res.json({
             success: true,
-            data: payment,
+            data: payment
         });
     } catch (error) {
         console.error('❌ Get payment error:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to get payment',
+            message: error.message || 'Failed to get payment'
         });
     }
 };
 
-// Manual payment submission (fallback for when STK Push fails)
-const submitManualPayment = async (req, res) => {
-    try {
-        const { fullName, email, phoneNumber, paymentMethod, transactionCode, amount, cartItems, sessionId } = req.body;
-
-        console.log('📝 Manual Payment Submission:');
-        console.log('Customer:', fullName);
-        console.log('Email:', email);
-        console.log('Method:', paymentMethod);
-        console.log('Transaction Code:', transactionCode);
-
-        // Validate
-        if (!fullName || !email || !phoneNumber || !paymentMethod || !transactionCode || !amount) {
-            return res.status(400).json({
-                success: false,
-                message: 'All fields are required',
-            });
-        }
-
-        const orderId = `YEA${Date.now()}`;
-
-        const payment = new Payment({
-            orderId,
-            fullName,
-            email,
-            phoneNumber,
-            paymentMethod,
-            transactionCode,
-            amount: Number(amount),
-            cartItems: cartItems || [],
-            sessionId: sessionId || 'guest',
-            status: 'pending',
-        });
-
-        await payment.save();
-
-        // Clear cart
-        if (sessionId) {
-            await Cart.findOneAndUpdate(
-                { sessionId },
-                { items: [], totalAmount: 0 },
-                { new: true }
-            );
-        }
-
-        console.log('✅ Manual payment record saved:', payment._id);
-
-        res.status(201).json({
-            success: true,
-            message: 'Payment details submitted successfully! We will verify and send your tickets shortly.',
-            data: {
-                orderId: payment.orderId,
-                status: payment.status,
-                email: payment.email,
-            },
-        });
-
-    } catch (error) {
-        console.error('❌ Error submitting manual payment:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to submit payment details',
-        });
-    }
-};
-
-// Admin: Get all payments
+// ============================================
+// ADMIN: GET ALL PAYMENTS - KEPT
+// ============================================
 const getPayments = async (req, res) => {
     try {
         const payments = await Payment.find().sort({ createdAt: -1 });
         res.json({
             success: true,
-            data: payments,
+            data: payments
         });
     } catch (error) {
         console.error('Error fetching payments:', error);
         res.status(500).json({
             success: false,
-            message: error.message,
+            message: error.message
         });
     }
 };
 
-// Admin: Update payment status
+// ============================================
+// ADMIN: UPDATE PAYMENT STATUS - KEPT
+// ============================================
 const updatePaymentStatus = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -383,7 +315,7 @@ const updatePaymentStatus = async (req, res) => {
         if (!payment) {
             return res.status(404).json({
                 success: false,
-                message: 'Payment not found',
+                message: 'Payment not found'
             });
         }
 
@@ -398,24 +330,26 @@ const updatePaymentStatus = async (req, res) => {
 
         res.json({
             success: true,
-            message: 'Payment status updated successfully',
-            data: payment,
+            message: 'Payment status updated',
+            data: payment
         });
     } catch (error) {
         console.error('Error updating payment:', error);
         res.status(500).json({
             success: false,
-            message: error.message,
+            message: error.message
         });
     }
 };
 
+// ============================================
+// EXPORT ALL FUNCTIONS
+// ============================================
 module.exports = {
     initiatePayment,
     payheroCallback,
     checkPaymentStatus,
     getPaymentByOrderId,
-    submitManualPayment,
     getPayments,
-    updatePaymentStatus,
+    updatePaymentStatus
 };
