@@ -43,7 +43,7 @@ class PayHeroService {
                 channel_id: this.channelId,
                 external_reference: externalReference,
                 customer_name: customerName || 'Customer',
-                callback_url: `${process.env.BACKEND_URL}/payment/callback`
+                callback_url: `${process.env.BACKEND_URL}/api/payment/callback`
             };
 
             const response = await axios.post(
