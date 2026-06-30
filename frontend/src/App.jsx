@@ -130,10 +130,10 @@ const App = () => {
           isPaymentModalOpen={isPaymentModalOpen}
           setIsPaymentModalOpen={setIsPaymentModalOpen}
           cartTotal={cartTotal}
-          cartItems={cartItems}  // ADD THIS - pass cartItems
           setIsCartOpen={setIsCartOpen}
           closeCart={closeCart}
-          sessionId={sessionId}
+          handleInitiatePayment={handleInitiatePayment}  // ← Add this
+          isLoading={isLoading}  // ← Add this
       />
 
         <EventModal
