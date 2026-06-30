@@ -193,7 +193,7 @@
 
 // src/components/PaymentModal.jsx
 import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { toast } from 'react-toastify';
 
 const PaymentModal = ({
     isPaymentModalOpen,
