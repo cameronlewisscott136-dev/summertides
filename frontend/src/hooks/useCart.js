@@ -1,6 +1,7 @@
 // src/hooks/useCart.js
 import { useState, useEffect } from 'react';
 import { cartAPI, paymentAPI } from '../services/api';
+import { toast } from 'react-toastify';
 
 export const useCart = (sessionId) => {
     const [cartCount, setCartCount] = useState(0);
@@ -39,7 +40,7 @@ export const useCart = (sessionId) => {
 
             if (!sessionId || sessionId === 'undefined' || sessionId === 'null') {
                 console.error('Invalid sessionId');
-                alert('Session error. Please refresh the page.');
+                toast.error('Session error. Please refresh the page.');
                 return false;
             }
 
@@ -60,11 +61,11 @@ export const useCart = (sessionId) => {
             setCartTotal(cart.totalAmount || 0);
             setCartCount(cart.items?.length || 0);
 
-            alert('Item added to cart successfully!');
+            toast.success('Item added to cart successfully!');
             return true;
         } catch (error) {
             console.error('Error adding to cart:', error);
-            alert('Failed to add item to cart. Please try again.');
+            toast.error('Failed to add item to cart. Please try again.');
             return false;
         } finally {
             setIsLoading(false);
@@ -166,12 +167,12 @@ export const useCart = (sessionId) => {
             // Start polling for payment status
             pollPaymentStatus(externalReference);
 
-            alert('✅ STK Push sent! Check your phone for the M-Pesa prompt.');
+            toast.success('✅ STK Push sent! Check your phone for the M-Pesa prompt.');
             return { success: true, externalReference };
 
         } catch (error) {
             console.error('Error initiating payment:', error);
-            alert('Failed to initiate payment. Please try again.');
+            toast.error('Failed to initiate payment. Please try again.');
             return { success: false };
         } finally {
             setIsLoading(false);
@@ -195,7 +196,7 @@ export const useCart = (sessionId) => {
                         status: 'completed',
                         mpesaReceiptNumber: status.mpesaReceiptNumber,
                     });
-                    alert('🎉 Payment successful! Your tickets have been confirmed.');
+                    toast.success('🎉 Payment successful! Your tickets have been confirmed.');
                     loadCart();
                 } else if (['failed', 'timeout', 'cancelled'].includes(status.status)) {
                     clearInterval(interval);
@@ -206,7 +207,7 @@ export const useCart = (sessionId) => {
                     alert(`❌ Payment ${status.status}. Please try again.`);
                 } else if (attempts >= maxAttempts) {
                     clearInterval(interval);
-                    alert('⏰ Payment is taking too long. Please check your M-Pesa app.');
+                    toast.error('⏰ Payment is taking too long. Please check your M-Pesa app.');
                 }
             } catch (error) {
                 console.error('Error checking payment status:', error);
