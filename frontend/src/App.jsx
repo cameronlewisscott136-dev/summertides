@@ -126,15 +126,16 @@ const App = () => {
           setSearchQuery={setSearchQuery}
         />
 
+        // In App.jsx - How to use this PaymentModal
         <PaymentModal 
-          isPaymentModalOpen={isPaymentModalOpen}
-          setIsPaymentModalOpen={setIsPaymentModalOpen}
-          cartTotal={cartTotal}
-          setIsCartOpen={setIsCartOpen}
-          closeCart={closeCart}
-          handleInitiatePayment={handleInitiatePayment}  // ← Add this
-          isLoading={isLoading}  // ← Add this
-      />
+            isPaymentModalOpen={isPaymentModalOpen}
+            setIsPaymentModalOpen={setIsPaymentModalOpen}
+            cartTotal={cartTotal}
+            cartItems={cartItems}  // Pass cart items for order summary
+            setIsCartOpen={setIsCartOpen}
+            closeCart={closeCart}
+            sessionId={sessionId}  // Pass sessionId for the API call
+        />
 
         <EventModal
           isEventModalOpen={isEventModalOpen}
