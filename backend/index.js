@@ -15,7 +15,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://graceful-hotteok-15efe8.netlify.app','https://graceful-hotteok-15efe8.netlify.app/api'],
+    origin: true,
     credentials: true
 }));
 app.use(express.json());
