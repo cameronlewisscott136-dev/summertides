@@ -7,7 +7,13 @@ const paymentSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
-    fullName: {
+    // PayHero transaction reference
+    externalReference: {
+        type: String,
+        unique: true,
+        sparse: true,
+    },
+    phoneNumber: {
         type: String,
         required: true,
     },
@@ -15,23 +21,33 @@ const paymentSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    phoneNumber: {
-        type: String,
-        required: true,
-    },
-    paymentMethod: {
-        type: String,
-        enum: ['mpesa', 'airtel'],
-        required: true,
-    },
-    transactionCode: {
-        type: String,
-        required: true,
-    },
     amount: {
         type: Number,
         required: true,
     },
+    customerName: String,
+    description: String,
+    sessionId: String,
+
+    // Payment status
+    status: {
+        type: String,
+        enum: ['pending', 'completed', 'failed', 'timeout', 'cancelled'],
+        default: 'pending',
+    },
+    mpesaReceiptNumber: String,
+    transactionDate: Date,
+    resultCode: Number,
+    resultDesc: String,
+
+    // PayHero specific
+    payheroTransactionId: String,
+    paymentChannel: {
+        type: String,
+        default: 'mpesa',
+    },
+
+    // Cart items
     cartItems: [{
         id: String,
         name: String,
@@ -41,21 +57,23 @@ const paymentSchema = new mongoose.Schema({
         eventId: String,
         ticketId: String,
     }],
-    sessionId: {
+
+    // YEA settlement details
+    settlementBank: {
         type: String,
-        required: true,
+        default: process.env.YEA_BANK_NAME || 'Co-operative Bank of Kenya',
     },
-    status: {
+    settlementAccount: {
         type: String,
-        enum: ['pending', 'verified', 'completed', 'failed'],
-        default: 'pending',
+        default: process.env.YEA_ACCOUNT_NAME || 'YEA - Your Event Africa',
     },
-    ticketsSent: {
+
+    ticketSent: {
         type: Boolean,
         default: false,
     },
-    ticketsSentAt: Date,
-    notes: String,
+    ticketSentAt: Date,
+
     createdAt: {
         type: Date,
         default: Date.now,
