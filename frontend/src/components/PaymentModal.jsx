@@ -35,8 +35,8 @@ const PaymentModal = ({
         },
         airtel: {
             name: 'Airtel Money',
-            paybill: '123456',
-            accountNumber: 'YEA2026',
+            paybill: '400200',
+            accountNumber: process.env.ACCOUNT_NUMBER,
             instructions: 'Go to Airtel Money > Paybill'
         }
     };
