@@ -209,6 +209,7 @@ const PaymentModal = ({
         email: '',
         phoneNumber: '',
         paymentMethod: 'mpesa',
+        accountNumber: '',
         transactionCode: '',
         amount: cartTotal || 0,
     });
