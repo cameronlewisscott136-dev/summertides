@@ -16,16 +16,13 @@ const PaymentModal = ({
         phoneNumber: '',
         paymentMethod: 'mpesa',
     });
-    const [step, setStep] = useState('form');      // 'form' | 'waiting' | 'success' | 'failed'
+    const [step, setStep] = useState('form');
     const [errors, setErrors] = useState({});
     const [reference, setReference] = useState(null);
     const [statusMessage, setStatusMessage] = useState('');
     const pollIntervalRef = useRef(null);
 
-    // ── API base URL ──────────────────────────────────────────────────────────
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    // const API_BASE_URL = 'https://summertides-2026.onrender.com/api';
-    // const API_BASE_URL = 'https://6667-102-203-236-20.ngrok-free.app/api';
 
     const items = Array.isArray(cartItems) ? cartItems : [];
 
@@ -55,7 +52,7 @@ const PaymentModal = ({
     // ── Poll /payment/status/:externalReference ───────────────────────────────
     const startPolling = (externalRef) => {
         let attempts = 0;
-        const MAX_ATTEMPTS = 24; // 2 min at 5s intervals
+        const MAX_ATTEMPTS = 24;
 
         pollIntervalRef.current = setInterval(async () => {
             attempts++;
@@ -90,7 +87,10 @@ const PaymentModal = ({
     // ── Initiate STK push ─────────────────────────────────────────────────────
     const handleSubmit = async () => {
         const newErrors = validate();
-        if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
+        if (Object.keys(newErrors).length > 0) { 
+            setErrors(newErrors); 
+            return; 
+        }
 
         setStep('waiting');
         setStatusMessage('Sending payment prompt to your phone…');
@@ -136,10 +136,19 @@ const PaymentModal = ({
         }
     };
 
+    // ── FIXED: Handle input change properly ────────────────────────────────
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+        console.log(`Input changed: ${name} = ${value}`); // Debug log
         setFormData(prev => ({ ...prev, [name]: value }));
-        if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: '' }));
+        }
+    };
+
+    // ── FIXED: Handle payment method change ──────────────────────────────────
+    const handlePaymentMethodChange = (method) => {
+        setFormData(prev => ({ ...prev, paymentMethod: method }));
     };
 
     const resetModal = () => {
@@ -275,7 +284,7 @@ const PaymentModal = ({
                         <button
                             key={value}
                             type="button"
-                            onClick={() => setFormData(prev => ({ ...prev, paymentMethod: value }))}
+                            onClick={() => handlePaymentMethodChange(value)}
                             className={`p-3 rounded-xl border-2 text-center transition-colors ${
                                 formData.paymentMethod === value
                                     ? 'border-teal-500 bg-teal-50'
@@ -290,29 +299,61 @@ const PaymentModal = ({
             </div>
 
             <div className="space-y-4">
-                {[
-                    { name: 'fullName',    label: 'Full Name',     type: 'text',  placeholder: 'John Doe' },
-                    { name: 'email',       label: 'Email Address', type: 'email', placeholder: 'you@example.com', hint: 'Tickets will be sent here' },
-                    { name: 'phoneNumber', label: 'Phone Number',  type: 'tel',   placeholder: '0712345678',      hint: 'M-Pesa prompt will be sent to this number' },
-                ].map(({ name, label, type, placeholder, hint }) => (
-                    <div key={name}>
-                        <label className="block text-sm font-medium text-[#0f172a] mb-1">
-                            {label} <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type={type}
-                            name={name}
-                            value={formData[name]}
-                            onChange={handleInputChange}
-                            placeholder={placeholder}
-                            className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm ${
-                                errors[name] ? 'border-red-400' : 'border-[#e2e8f0]'
-                            }`}
-                        />
-                        {errors[name] && <p className="text-xs text-red-500 mt-1">{errors[name]}</p>}
-                        {hint && !errors[name] && <p className="text-xs text-[#94a3b8] mt-1">{hint}</p>}
-                    </div>
-                ))}
+                {/* Full Name */}
+                <div>
+                    <label className="block text-sm font-medium text-[#0f172a] mb-1">
+                        Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleInputChange}
+                        placeholder="John Doe"
+                        className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm ${
+                            errors.fullName ? 'border-red-400' : 'border-[#e2e8f0]'
+                        }`}
+                    />
+                    {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
+                </div>
+
+                {/* Email */}
+                <div>
+                    <label className="block text-sm font-medium text-[#0f172a] mb-1">
+                        Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        placeholder="you@example.com"
+                        className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm ${
+                            errors.email ? 'border-red-400' : 'border-[#e2e8f0]'
+                        }`}
+                    />
+                    {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
+                    {!errors.email && <p className="text-xs text-[#94a3b8] mt-1">Tickets will be sent here</p>}
+                </div>
+
+                {/* Phone Number */}
+                <div>
+                    <label className="block text-sm font-medium text-[#0f172a] mb-1">
+                        Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="tel"
+                        name="phoneNumber"
+                        value={formData.phoneNumber}
+                        onChange={handleInputChange}
+                        placeholder="0712345678"
+                        className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm ${
+                            errors.phoneNumber ? 'border-red-400' : 'border-[#e2e8f0]'
+                        }`}
+                    />
+                    {errors.phoneNumber && <p className="text-xs text-red-500 mt-1">{errors.phoneNumber}</p>}
+                    {!errors.phoneNumber && <p className="text-xs text-[#94a3b8] mt-1">M-Pesa prompt will be sent to this number</p>}
+                </div>
             </div>
 
             <button
