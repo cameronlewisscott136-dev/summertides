@@ -169,8 +169,7 @@ const PaymentModal = ({
         if (closeCart) closeCart();
     };
 
-    // ── Render views ──────────────────────────────────────────────────────────
-
+    // ── Success View ──────────────────────────────────────────────────────────
     const SuccessView = () => (
         <div className="text-center py-10 px-4">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -191,6 +190,7 @@ const PaymentModal = ({
         </div>
     );
 
+    // ── Failed View ──────────────────────────────────────────────────────────
     const FailedView = () => (
         <div className="text-center py-10 px-4">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -217,6 +217,7 @@ const PaymentModal = ({
         </div>
     );
 
+    // ── Waiting View ──────────────────────────────────────────────────────────
     const WaitingView = () => (
         <div className="text-center py-10 px-4">
             <div className="relative w-20 h-20 mx-auto mb-6">
@@ -245,139 +246,145 @@ const PaymentModal = ({
         </div>
     );
 
-    const FormView = () => (
-        <>
-            <div className="flex justify-between items-center mb-5">
-                <h2 className="text-2xl font-bold text-[#0f172a]">Complete Payment</h2>
-                <button onClick={handleClose} className="text-[#64748b] hover:text-[#0f172a]">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
+    // ── FIXED: Form View - Direct render, no function wrapper ──────────────
+    // This prevents the input focus from being lost on each keystroke
+    if (step === 'form') {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[8px] p-4">
+                <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+                    <div className="flex justify-between items-center mb-5">
+                        <h2 className="text-2xl font-bold text-[#0f172a]">Complete Payment</h2>
+                        <button onClick={handleClose} className="text-[#64748b] hover:text-[#0f172a]">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
 
-            {items.length > 0 && (
-                <div className="bg-gray-50 rounded-xl p-4 mb-5">
-                    <h4 className="text-sm font-semibold text-[#0f172a] mb-2">Order Summary</h4>
-                    <div className="space-y-1">
-                        {items.map((item, i) => (
-                            <div key={i} className="flex justify-between text-sm text-[#64748b]">
-                                <span>{item.name} ×{item.quantity || 1}</span>
-                                <span>KES {((item.price || 0) * (item.quantity || 1)).toLocaleString()}</span>
+                    {items.length > 0 && (
+                        <div className="bg-gray-50 rounded-xl p-4 mb-5">
+                            <h4 className="text-sm font-semibold text-[#0f172a] mb-2">Order Summary</h4>
+                            <div className="space-y-1">
+                                {items.map((item, i) => (
+                                    <div key={i} className="flex justify-between text-sm text-[#64748b]">
+                                        <span>{item.name} ×{item.quantity || 1}</span>
+                                        <span>KES {((item.price || 0) * (item.quantity || 1)).toLocaleString()}</span>
+                                    </div>
+                                ))}
+                                <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between font-bold text-[#0f172a]">
+                                    <span>Total</span>
+                                    <span>KES {cartTotal?.toLocaleString() || 0}</span>
+                                </div>
                             </div>
-                        ))}
-                        <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between font-bold text-[#0f172a]">
-                            <span>Total</span>
-                            <span>KES {cartTotal?.toLocaleString() || 0}</span>
+                        </div>
+                    )}
+
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-[#0f172a] mb-2">
+                            Payment Method <span className="text-red-500">*</span>
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                            {[
+                                { value: 'mpesa', label: 'M-Pesa', emoji: '📱' },
+                                { value: 'airtel', label: 'Airtel Money', emoji: '📱' },
+                            ].map(({ value, label, emoji }) => (
+                                <button
+                                    key={value}
+                                    type="button"
+                                    onClick={() => handlePaymentMethodChange(value)}
+                                    className={`p-3 rounded-xl border-2 text-center transition-colors ${
+                                        formData.paymentMethod === value
+                                            ? 'border-teal-500 bg-teal-50'
+                                            : 'border-gray-200 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <span className="text-lg">{emoji}</span>
+                                    <p className="text-sm font-medium mt-0.5">{label}</p>
+                                </button>
+                            ))}
                         </div>
                     </div>
-                </div>
-            )}
 
-            <div className="mb-4">
-                <label className="block text-sm font-medium text-[#0f172a] mb-2">
-                    Payment Method <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                    {[
-                        { value: 'mpesa', label: 'M-Pesa', emoji: '📱' },
-                        { value: 'airtel', label: 'Airtel Money', emoji: '📱' },
-                    ].map(({ value, label, emoji }) => (
-                        <button
-                            key={value}
-                            type="button"
-                            onClick={() => handlePaymentMethodChange(value)}
-                            className={`p-3 rounded-xl border-2 text-center transition-colors ${
-                                formData.paymentMethod === value
-                                    ? 'border-teal-500 bg-teal-50'
-                                    : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                        >
-                            <span className="text-lg">{emoji}</span>
-                            <p className="text-sm font-medium mt-0.5">{label}</p>
-                        </button>
-                    ))}
-                </div>
-            </div>
+                    <div className="space-y-4">
+                        {/* Full Name */}
+                        <div>
+                            <label className="block text-sm font-medium text-[#0f172a] mb-1">
+                                Full Name <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="fullName"
+                                value={formData.fullName}
+                                onChange={handleInputChange}
+                                placeholder="John Doe"
+                                className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm ${
+                                    errors.fullName ? 'border-red-400' : 'border-[#e2e8f0]'
+                                }`}
+                                autoComplete="off"
+                            />
+                            {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
+                        </div>
 
-            <div className="space-y-4">
-                {/* Full Name */}
-                <div>
-                    <label className="block text-sm font-medium text-[#0f172a] mb-1">
-                        Full Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        name="fullName"
-                        value={formData.fullName}
-                        onChange={handleInputChange}
-                        placeholder="John Doe"
-                        className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm ${
-                            errors.fullName ? 'border-red-400' : 'border-[#e2e8f0]'
-                        }`}
-                        autoComplete="off"
-                    />
-                    {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
-                </div>
+                        {/* Email */}
+                        <div>
+                            <label className="block text-sm font-medium text-[#0f172a] mb-1">
+                                Email Address <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleInputChange}
+                                placeholder="you@example.com"
+                                className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm ${
+                                    errors.email ? 'border-red-400' : 'border-[#e2e8f0]'
+                                }`}
+                                autoComplete="off"
+                            />
+                            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
+                            {!errors.email && <p className="text-xs text-[#94a3b8] mt-1">Tickets will be sent here</p>}
+                        </div>
 
-                {/* Email */}
-                <div>
-                    <label className="block text-sm font-medium text-[#0f172a] mb-1">
-                        Email Address <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        placeholder="you@example.com"
-                        className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm ${
-                            errors.email ? 'border-red-400' : 'border-[#e2e8f0]'
-                        }`}
-                        autoComplete="off"
-                    />
-                    {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
-                    {!errors.email && <p className="text-xs text-[#94a3b8] mt-1">Tickets will be sent here</p>}
-                </div>
+                        {/* Phone Number */}
+                        <div>
+                            <label className="block text-sm font-medium text-[#0f172a] mb-1">
+                                Phone Number <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="tel"
+                                name="phoneNumber"
+                                value={formData.phoneNumber}
+                                onChange={handleInputChange}
+                                placeholder="0712345678"
+                                className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm ${
+                                    errors.phoneNumber ? 'border-red-400' : 'border-[#e2e8f0]'
+                                }`}
+                                autoComplete="off"
+                            />
+                            {errors.phoneNumber && <p className="text-xs text-red-500 mt-1">{errors.phoneNumber}</p>}
+                            {!errors.phoneNumber && <p className="text-xs text-[#94a3b8] mt-1">M-Pesa prompt will be sent to this number</p>}
+                        </div>
+                    </div>
 
-                {/* Phone Number */}
-                <div>
-                    <label className="block text-sm font-medium text-[#0f172a] mb-1">
-                        Phone Number <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                        type="tel"
-                        name="phoneNumber"
-                        value={formData.phoneNumber}
-                        onChange={handleInputChange}
-                        placeholder="0712345678"
-                        className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm ${
-                            errors.phoneNumber ? 'border-red-400' : 'border-[#e2e8f0]'
-                        }`}
-                        autoComplete="off"
-                    />
-                    {errors.phoneNumber && <p className="text-xs text-red-500 mt-1">{errors.phoneNumber}</p>}
-                    {!errors.phoneNumber && <p className="text-xs text-[#94a3b8] mt-1">M-Pesa prompt will be sent to this number</p>}
+                    <button
+                        onClick={handleSubmit}
+                        className="mt-6 w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-700 active:scale-[0.98] text-white font-semibold text-sm transition-all"
+                    >
+                        Pay KES {cartTotal?.toLocaleString() || 0} via {formData.paymentMethod === 'mpesa' ? 'M-Pesa' : 'Airtel Money'}
+                    </button>
+
+                    <p className="text-xs text-[#94a3b8] text-center mt-3">
+                        You'll receive an STK push on your phone to confirm payment.
+                    </p>
                 </div>
             </div>
+        );
+    }
 
-            <button
-                onClick={handleSubmit}
-                className="mt-6 w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-700 active:scale-[0.98] text-white font-semibold text-sm transition-all"
-            >
-                Pay KES {cartTotal?.toLocaleString() || 0} via {formData.paymentMethod === 'mpesa' ? 'M-Pesa' : 'Airtel Money'}
-            </button>
-
-            <p className="text-xs text-[#94a3b8] text-center mt-3">
-                You'll receive an STK push on your phone to confirm payment.
-            </p>
-        </>
-    );
-
+    // ── Other views (waiting, success, failed) ──────────────────────────────
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[8px] p-4">
             <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-                {step === 'form' && <FormView />}
                 {step === 'waiting' && <WaitingView />}
                 {step === 'success' && <SuccessView />}
                 {step === 'failed' && <FailedView />}
