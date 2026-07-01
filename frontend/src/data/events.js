@@ -13,7 +13,7 @@ export const events = [
             { id: 'ticket_1', name: 'TIER 3', price: 5000, description: 'This ticket admits you to 3 days of the festival', available: true },
             { id: 'ticket_2', name: 'PRE-SALE TICKETS', price: 3000, description: 'This ticket admits you to 3 days of the festival', available: false, soldOut: true },
             { id: 'ticket_3', name: 'TIER 1', price: 3000, description: 'This ticket admits you to 3 days of the festival', available: true},
-            { id: 'ticket_4', name: 'TIER 2', price: 4, description: 'This ticket admits you to 3 days of the festival', available: true },
+            { id: 'ticket_4', name: 'TIER 2', price: 1, description: 'This ticket admits you to 3 days of the festival', available: true },
         ]
     }
 ];
