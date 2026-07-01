@@ -57,7 +57,7 @@ const initiatePayment = async (req, res) => {
             });
         }
 
-        // FIXED: Create cartItems properly
+        // FIXED: Create cartItems properly - simple mapping
         const cartItems = cart.items.map(item => ({
             id: String(item.id || ''),
             name: String(item.name || ''),
@@ -81,7 +81,7 @@ const initiatePayment = async (req, res) => {
             sessionId,
             payheroTransactionId: result.payheroReference || "",
             paymentChannel: "mpesa",
-            cartItems: cartItems,
+            cartItems: cartItems, // ← This will work with the fixed schema
             settlementBank: process.env.YEA_BANK_NAME || "Co-operative Bank of Kenya",
             settlementAccount: process.env.YEA_ACCOUNT_NAME || "Summertides Festival",
         });
@@ -112,7 +112,7 @@ const initiatePayment = async (req, res) => {
 };
 
 // ============================================
-// PAYHERO WEBHOOK CALLBACK - FIXED
+// PAYHERO WEBHOOK CALLBACK
 // ============================================
 const payheroCallback = async (req, res) => {
     try {
@@ -122,10 +122,7 @@ const payheroCallback = async (req, res) => {
         console.log("Full Body:", JSON.stringify(req.body, null, 2));
         console.log("========================================\n");
 
-        // Handle different PayHero callback formats
         const raw = req.body;
-        
-        // Try to extract data from different possible formats
         let external_reference = null;
         let status = null;
         let provider_reference = null;
@@ -133,7 +130,7 @@ const payheroCallback = async (req, res) => {
         let resultCode = null;
         let resultDesc = null;
 
-        // Format 1: Direct fields
+        // Try different formats
         if (raw.ExternalReference || raw.external_reference) {
             external_reference = raw.ExternalReference || raw.external_reference;
             status = raw.Status || raw.status;
@@ -141,9 +138,7 @@ const payheroCallback = async (req, res) => {
             reference = raw.MerchantRequestID || raw.reference || "";
             resultCode = raw.ResultCode;
             resultDesc = raw.ResultDesc || raw.ResultDescription || "";
-        }
-        // Format 2: Wrapped in response object
-        else if (raw.response) {
+        } else if (raw.response) {
             const payload = raw.response;
             external_reference = payload.ExternalReference || payload.external_reference;
             status = payload.Status || payload.status;
@@ -151,9 +146,7 @@ const payheroCallback = async (req, res) => {
             reference = payload.MerchantRequestID || payload.reference || "";
             resultCode = payload.ResultCode;
             resultDesc = payload.ResultDesc || payload.ResultDescription || "";
-        }
-        // Format 3: Wrapped in data object
-        else if (raw.data) {
+        } else if (raw.data) {
             const payload = raw.data;
             external_reference = payload.ExternalReference || payload.external_reference;
             status = payload.Status || payload.status;
@@ -173,44 +166,25 @@ const payheroCallback = async (req, res) => {
 
         if (!external_reference) {
             console.error("❌ No external_reference in callback");
-            return res.status(200).json({ 
-                success: false, 
-                message: "Missing external_reference" 
-            });
+            return res.status(200).json({ success: false, message: "Missing external_reference" });
         }
 
-        // Find the payment
-        const payment = await Payment.findOne({ 
-            externalReference: external_reference 
-        });
+        const payment = await Payment.findOne({ externalReference: external_reference });
 
         if (!payment) {
             console.error("❌ Payment not found for ref:", external_reference);
-            return res.status(200).json({ 
-                success: false, 
-                message: "Payment record not found" 
-            });
+            return res.status(200).json({ success: false, message: "Payment record not found" });
         }
 
-        console.log(`📊 Current payment status: ${payment.status}`);
-        console.log(`📧 Customer email: ${payment.email}`);
-        console.log(`💰 Amount: KES ${payment.amount}`);
-
-        // Skip if already in a terminal state (idempotency)
         const terminalStatuses = ["completed", "failed", "timeout", "cancelled"];
         if (terminalStatuses.includes(payment.status)) {
             console.log(`ℹ️ Payment already in terminal state: ${payment.status}. Skipping.`);
-            return res.status(200).json({ 
-                success: true, 
-                message: "Already processed" 
-            });
+            return res.status(200).json({ success: true, message: "Already processed" });
         }
 
-        // Normalize status to lowercase for comparison
         const normStatus = (status || "").toString().toLowerCase().trim();
         console.log(`📊 Normalized status: ${normStatus}`);
 
-        // Handle different status values
         switch (normStatus) {
             case "success":
             case "completed":
@@ -220,7 +194,6 @@ const payheroCallback = async (req, res) => {
                 console.log(`🧾 M-Pesa Receipt: ${provider_reference}`);
                 console.log(`📧 Customer: ${payment.email}`);
 
-                // Update payment
                 payment.status = "completed";
                 payment.mpesaReceiptNumber = provider_reference || "";
                 payment.payheroTransactionId = reference || payment.payheroTransactionId;
@@ -231,7 +204,6 @@ const payheroCallback = async (req, res) => {
                 payment.ticketSentAt = new Date();
                 await payment.save();
 
-                // Clear the customer's cart
                 if (payment.sessionId) {
                     await Cart.findOneAndUpdate(
                         { sessionId: payment.sessionId },
@@ -241,76 +213,46 @@ const payheroCallback = async (req, res) => {
                     console.log("🛒 Cart cleared for session:", payment.sessionId);
                 }
 
-                console.log("✅ Payment updated to completed");
-                console.log(`📧 Tickets will be sent to: ${payment.email}`);
-                // TODO: Send ticket email here
-                // await emailService.sendTickets(payment);
-
                 break;
             }
-
             case "failed":
             case "error": {
                 console.log("\n❌ PAYMENT FAILED");
                 payment.status = "failed";
                 payment.resultDesc = resultDesc || "Payment failed";
                 await payment.save();
-                console.log("❌ Payment marked as failed");
                 break;
             }
-
             case "timeout":
             case "timedout": {
                 console.log("\n⏰ PAYMENT TIMEOUT");
                 payment.status = "timeout";
                 payment.resultDesc = resultDesc || "Payment timed out";
                 await payment.save();
-                console.log("⏰ Payment marked as timeout");
                 break;
             }
-
             case "cancelled":
             case "canceled": {
                 console.log("\n🚫 PAYMENT CANCELLED");
                 payment.status = "cancelled";
                 payment.resultDesc = resultDesc || "Cancelled by user";
                 await payment.save();
-                console.log("🚫 Payment marked as cancelled");
                 break;
             }
-
-            case "pending":
-            case "processing":
-            case "queued": {
-                console.log("\n⏳ Payment still processing");
-                // Don't update status, keep as pending
-                break;
-            }
-
             default: {
                 console.log(`⚠️ Unknown callback status: ${status}`);
-                // Don't change status for unknown states
             }
         }
 
-        // Always return 200 to PayHero
-        return res.status(200).json({ 
-            success: true, 
-            message: "Callback processed successfully" 
-        });
-
+        return res.status(200).json({ success: true, message: "Callback processed" });
     } catch (error) {
         console.error("❌ Callback processing error:", error);
-        // Return 200 even on error to prevent PayHero from retrying indefinitely
-        return res.status(200).json({ 
-            success: false, 
-            message: "Callback processing failed" 
-        });
+        return res.status(200).json({ success: false, message: "Callback processing failed" });
     }
 };
 
 // ============================================
-// CHECK PAYMENT STATUS (frontend polling)
+// CHECK PAYMENT STATUS
 // ============================================
 const checkPaymentStatus = async (req, res) => {
     try {
@@ -321,22 +263,14 @@ const checkPaymentStatus = async (req, res) => {
         const payment = await Payment.findOne({ externalReference });
 
         if (!payment) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Payment not found" 
-            });
+            return res.status(404).json({ success: false, message: "Payment not found" });
         }
 
-        console.log(`📊 Current status: ${payment.status}`);
-
-        // If still pending, ask PayHero directly (fallback if callback hasn't fired)
         if (payment.status === "pending") {
             console.log("⏳ Status is pending, checking with PayHero...");
             const result = await payheroService.checkTransactionStatus(externalReference);
 
             if (result.success && result.data) {
-                console.log("📊 PayHero response:", JSON.stringify(result.data, null, 2));
-                
                 const txStatus = (result.data.status || "").toUpperCase();
                 console.log(`📊 PayHero status: ${txStatus}`);
 
@@ -348,7 +282,6 @@ const checkPaymentStatus = async (req, res) => {
                     payment.ticketSentAt = new Date();
                     await payment.save();
                     
-                    // Clear cart
                     if (payment.sessionId) {
                         await Cart.findOneAndUpdate(
                             { sessionId: payment.sessionId },
@@ -360,15 +293,12 @@ const checkPaymentStatus = async (req, res) => {
                 } else if (["FAILED", "ERROR"].includes(txStatus)) {
                     payment.status = "failed";
                     await payment.save();
-                    console.log("❌ Payment status updated to failed via polling");
                 } else if (["TIMEOUT", "TIMEDOUT"].includes(txStatus)) {
                     payment.status = "timeout";
                     await payment.save();
-                    console.log("⏰ Payment status updated to timeout via polling");
                 } else if (["CANCELLED", "CANCELED"].includes(txStatus)) {
                     payment.status = "cancelled";
                     await payment.save();
-                    console.log("🚫 Payment status updated to cancelled via polling");
                 }
             }
         }
@@ -395,7 +325,7 @@ const checkPaymentStatus = async (req, res) => {
 };
 
 // ============================================
-// MANUAL TEST CALLBACK (FOR DEBUGGING)
+// TEST CALLBACK (For debugging)
 // ============================================
 const testCallback = async (req, res) => {
     try {
@@ -406,16 +336,8 @@ const testCallback = async (req, res) => {
         const payment = await Payment.findOne({ externalReference });
 
         if (!payment) {
-            console.log(`❌ [TEST] Payment not found: ${externalReference}`);
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Payment not found' 
-            });
+            return res.status(404).json({ success: false, message: 'Payment not found' });
         }
-
-        console.log(`📊 [TEST] Current status: ${payment.status}`);
-        console.log(`📧 [TEST] Email: ${payment.email}`);
-        console.log(`💰 [TEST] Amount: ${payment.amount}`);
 
         payment.status = 'completed';
         payment.mpesaReceiptNumber = 'TEST' + Date.now();
@@ -432,10 +354,7 @@ const testCallback = async (req, res) => {
                 { items: [], totalAmount: 0 },
                 { new: true }
             );
-            console.log(`🛒 [TEST] Cart cleared for: ${payment.sessionId}`);
         }
-
-        console.log(`✅ [TEST] Payment completed for: ${externalReference}`);
 
         return res.json({
             success: true,
@@ -448,10 +367,7 @@ const testCallback = async (req, res) => {
         });
     } catch (error) {
         console.error('❌ [TEST] Error:', error);
-        return res.status(500).json({ 
-            success: false, 
-            message: error.message 
-        });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -461,21 +377,13 @@ const testCallback = async (req, res) => {
 const getPaymentByOrderId = async (req, res) => {
     try {
         const payment = await Payment.findOne({ orderId: req.params.orderId });
-
         if (!payment) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Payment not found" 
-            });
+            return res.status(404).json({ success: false, message: "Payment not found" });
         }
-
         return res.json({ success: true, data: payment });
     } catch (error) {
         console.error("❌ Get payment error:", error);
-        return res.status(500).json({ 
-            success: false, 
-            message: error.message 
-        });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -488,10 +396,7 @@ const getPayments = async (req, res) => {
         return res.json({ success: true, data: payments });
     } catch (error) {
         console.error("❌ Fetch payments error:", error);
-        return res.status(500).json({ 
-            success: false, 
-            message: error.message 
-        });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -506,10 +411,7 @@ const updatePaymentStatus = async (req, res) => {
         const payment = await Payment.findOne({ orderId });
 
         if (!payment) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Payment not found" 
-            });
+            return res.status(404).json({ success: false, message: "Payment not found" });
         }
 
         if (status) payment.status = status;
@@ -529,10 +431,7 @@ const updatePaymentStatus = async (req, res) => {
         });
     } catch (error) {
         console.error("❌ Update payment error:", error);
-        return res.status(500).json({ 
-            success: false, 
-            message: error.message 
-        });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -543,5 +442,5 @@ module.exports = {
     getPaymentByOrderId,
     getPayments,
     updatePaymentStatus,
-    testCallback, // Added for debugging
+    testCallback,
 };
