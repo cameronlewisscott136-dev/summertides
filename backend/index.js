@@ -14,7 +14,10 @@ const eventRoutes = require('./routes/events');
 const app = express();
 
 // Middleware
-app.use(cors({ origin: '*' })); 
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
