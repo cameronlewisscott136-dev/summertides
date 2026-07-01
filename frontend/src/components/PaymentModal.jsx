@@ -1,5 +1,5 @@
 // src/components/PaymentModal.jsx
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const PaymentModal = ({
     isPaymentModalOpen,
@@ -33,7 +33,7 @@ const PaymentModal = ({
     if (!isPaymentModalOpen) return null;
 
     // ── Validation ────────────────────────────────────────────────────────────
-    const validate = useCallback(() => {
+    const validate = () => {
         const e = {};
         if (!formData.fullName.trim()) e.fullName = 'Full name is required';
         if (!formData.email.trim()) {
@@ -47,10 +47,10 @@ const PaymentModal = ({
             e.phoneNumber = 'Enter a valid phone number (e.g. 0712345678)';
         }
         return e;
-    }, [formData]);
+    };
 
     // ── Poll /payment/status/:externalReference ───────────────────────────────
-    const startPolling = useCallback((externalRef) => {
+    const startPolling = (externalRef) => {
         let attempts = 0;
         const MAX_ATTEMPTS = 24;
 
@@ -82,10 +82,10 @@ const PaymentModal = ({
                 // Network hiccup — keep polling silently
             }
         }, 5000);
-    }, [API_BASE_URL]);
+    };
 
     // ── Initiate STK push ─────────────────────────────────────────────────────
-    const handleSubmit = useCallback(async () => {
+    const handleSubmit = async () => {
         const newErrors = validate();
         if (Object.keys(newErrors).length > 0) { 
             setErrors(newErrors); 
@@ -125,42 +125,45 @@ const PaymentModal = ({
             setStep('failed');
             setStatusMessage('Network error. Please check your connection and try again.');
         }
-    }, [validate, API_BASE_URL, formData, cartTotal, items, sessionId, startPolling]);
+    };
 
     // ── FIXED: Handle input change - STABLE ──────────────────────────────────
-    const handleInputChange = useCallback((e) => {
+    const handleInputChange = (e) => {
         const { name, value } = e.target;
-        // Update state
-        setFormData(prev => ({ ...prev, [name]: value }));
+        // Update state without any re-render issues
+        setFormData(prev => {
+            const newData = { ...prev, [name]: value };
+            return newData;
+        });
         // Clear error for this field
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
-    }, [errors]);
+    };
 
-    const handlePaymentMethodChange = useCallback((method) => {
+    const handlePaymentMethodChange = (method) => {
         setFormData(prev => ({ ...prev, paymentMethod: method }));
-    }, []);
+    };
 
-    const resetModal = useCallback(() => {
+    const resetModal = () => {
         clearInterval(pollIntervalRef.current);
         setStep('form');
         setErrors({});
         setReference(null);
         setStatusMessage('');
         setFormData({ fullName: '', email: '', phoneNumber: '', paymentMethod: 'mpesa' });
-    }, []);
+    };
 
-    const handleClose = useCallback(() => {
+    const handleClose = () => {
         resetModal();
         setIsPaymentModalOpen(false);
         if (setIsCartOpen) setIsCartOpen(false);
         if (closeCart) closeCart();
-    }, [resetModal, setIsPaymentModalOpen, setIsCartOpen, closeCart]);
+    };
 
     // ── Sub-views ─────────────────────────────────────────────────────────────
 
-    const SuccessView = useCallback(() => (
+    const SuccessView = () => (
         <div className="text-center py-10 px-4">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,9 +181,9 @@ const PaymentModal = ({
                 Done
             </button>
         </div>
-    ), [formData.email, handleClose]);
+    );
 
-    const FailedView = useCallback(() => (
+    const FailedView = () => (
         <div className="text-center py-10 px-4">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -204,9 +207,9 @@ const PaymentModal = ({
                 </button>
             </div>
         </div>
-    ), [statusMessage, resetModal, handleClose]);
+    );
 
-    const WaitingView = useCallback(() => (
+    const WaitingView = () => (
         <div className="text-center py-10 px-4">
             <div className="relative w-20 h-20 mx-auto mb-6">
                 <div className="absolute inset-0 rounded-full bg-teal-100 animate-ping opacity-50" />
@@ -232,10 +235,10 @@ const PaymentModal = ({
                 Cancel and go back
             </button>
         </div>
-    ), [statusMessage, cartTotal, reference, formData.phoneNumber, resetModal]);
+    );
 
-    // ── FIXED: FormView - Using useMemo to prevent recreation ────────────────
-    const FormView = useMemo(() => (
+    // ── FIXED: FormView - Stable component ──────────────────────────────────
+    const FormView = () => (
         <>
             <div className="flex justify-between items-center mb-5">
                 <h2 className="text-2xl font-bold text-[#0f172a]">Complete Payment</h2>
@@ -362,12 +365,12 @@ const PaymentModal = ({
                 You'll receive an STK push on your phone to confirm payment.
             </p>
         </>
-    ), [items, cartTotal, formData, errors, handleClose, handlePaymentMethodChange, handleInputChange, handleSubmit]);
+    );
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[8px] p-4">
             <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-                {step === 'form'    && FormView}
+                {step === 'form'    && <FormView />}
                 {step === 'waiting' && <WaitingView />}
                 {step === 'success' && <SuccessView />}
                 {step === 'failed'  && <FailedView />}
