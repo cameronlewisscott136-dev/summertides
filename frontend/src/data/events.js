@@ -10,10 +10,10 @@ export const events = [
         price: '3,000.00',
         image: 'https://firebasestorage.googleapis.com/v0/b/hustle-build.appspot.com/o/23625%2Fproduct%2Fc7f37190-35e2-4568-8738-0fcf2b494cd6.jpg?alt=media&token=249f6a8b-b611-4bb7-9227-683e09c3e1c3',
         tickets: [
-            { id: 'ticket_1', name: 'TIER 3', price: 6, description: 'This ticket admits you to 3 days of the festival', available: true },
-            { id: 'ticket_2', name: 'PRE-SALE TICKETS', price: 3, description: 'This ticket admits you to 3 days of the festival', available: false, soldOut: true },
-            { id: 'ticket_3', name: 'TIER 1', price: 4, description: 'This ticket admits you to 3 days of the festival', available: true},
-            { id: 'ticket_4', name: 'TIER 2', price: 5, description: 'This ticket admits you to 3 days of the festival', available: true },
+            { id: 'ticket_1', name: 'TIER 3', price: 6000, description: 'This ticket admits you to 3 days of the festival', available: true },
+            { id: 'ticket_2', name: 'PRE-SALE TICKETS', price: 3000, description: 'This ticket admits you to 3 days of the festival', available: false, soldOut: true },
+            { id: 'ticket_3', name: 'TIER 1', price: 4000, description: 'This ticket admits you to 3 days of the festival', available: true},
+            { id: 'ticket_4', name: 'TIER 2', price: 5000, description: 'This ticket admits you to 3 days of the festival', available: true },
         ]
     }
 ];
