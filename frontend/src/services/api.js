@@ -2,8 +2,8 @@
 import axios from 'axios';
 
 // const API_BASE_URL = 'http://localhost:5000/api';
-// const API_BASE_URL = 'https://summertides-2026.onrender.com/api';
-const API_BASE_URL = 'https://6667-102-203-236-20.ngrok-free.app/api';
+const API_BASE_URL = 'https://summertides-2026.onrender.com/api';
+// const API_BASE_URL = 'https://6667-102-203-236-20.ngrok-free.app/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
