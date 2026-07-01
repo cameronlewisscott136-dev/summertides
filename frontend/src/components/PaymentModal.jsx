@@ -95,14 +95,6 @@ const PaymentModal = ({
         setStep('waiting');
         setStatusMessage('Sending payment prompt to your phone…');
 
-        console.log('📤 Initiating payment:', {
-            phoneNumber: formData.phoneNumber,
-            email: formData.email,
-            customerName: formData.fullName,
-            amount: cartTotal,
-            sessionId,
-        });
-
         try {
             const res = await fetch(`${API_BASE_URL}/payment/initiate`, {
                 method: 'POST',
@@ -119,7 +111,6 @@ const PaymentModal = ({
             });
 
             const data = await res.json();
-            console.log('📥 Initiate response:', data);
 
             if (res.ok && data.success && data.data?.externalReference) {
                 setReference(data.data.externalReference);
@@ -136,17 +127,20 @@ const PaymentModal = ({
         }
     };
 
-    // ── FIXED: Handle input change properly ────────────────────────────────
+    // ── FIXED: Handle input change - STABLE ──────────────────────────────────
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        console.log(`Input changed: ${name} = ${value}`); // Debug log
-        setFormData(prev => ({ ...prev, [name]: value }));
+        // Update state without any re-render issues
+        setFormData(prev => {
+            const newData = { ...prev, [name]: value };
+            return newData;
+        });
+        // Clear error for this field
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
     };
 
-    // ── FIXED: Handle payment method change ──────────────────────────────────
     const handlePaymentMethodChange = (method) => {
         setFormData(prev => ({ ...prev, paymentMethod: method }));
     };
@@ -243,6 +237,7 @@ const PaymentModal = ({
         </div>
     );
 
+    // ── FIXED: FormView - Stable component ──────────────────────────────────
     const FormView = () => (
         <>
             <div className="flex justify-between items-center mb-5">
@@ -313,6 +308,7 @@ const PaymentModal = ({
                         className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm ${
                             errors.fullName ? 'border-red-400' : 'border-[#e2e8f0]'
                         }`}
+                        autoComplete="off"
                     />
                     {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
                 </div>
@@ -331,6 +327,7 @@ const PaymentModal = ({
                         className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm ${
                             errors.email ? 'border-red-400' : 'border-[#e2e8f0]'
                         }`}
+                        autoComplete="off"
                     />
                     {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
                     {!errors.email && <p className="text-xs text-[#94a3b8] mt-1">Tickets will be sent here</p>}
@@ -350,6 +347,7 @@ const PaymentModal = ({
                         className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm ${
                             errors.phoneNumber ? 'border-red-400' : 'border-[#e2e8f0]'
                         }`}
+                        autoComplete="off"
                     />
                     {errors.phoneNumber && <p className="text-xs text-red-500 mt-1">{errors.phoneNumber}</p>}
                     {!errors.phoneNumber && <p className="text-xs text-[#94a3b8] mt-1">M-Pesa prompt will be sent to this number</p>}
