@@ -126,7 +126,6 @@ const App = () => {
           setSearchQuery={setSearchQuery}
         />
 
-        // In App.jsx - How to use this PaymentModal
         <PaymentModal 
             isPaymentModalOpen={isPaymentModalOpen}
             setIsPaymentModalOpen={setIsPaymentModalOpen}

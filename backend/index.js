@@ -8,16 +8,13 @@ dotenv.config();
 
 // Import routes
 const cartRoutes = require('./routes/cart');
-const paymentRoutes = require('./routes/payment');  // ← Already there
+const paymentRoutes = require('./routes/payment');
 const eventRoutes = require('./routes/events');
 
 const app = express();
 
 // Middleware
-app.use(cors({
-    origin: true,
-    credentials: true
-}));
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
