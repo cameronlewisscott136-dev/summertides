@@ -1,5 +1,5 @@
 // src/components/PaymentModal.jsx
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const PaymentModal = ({
     isPaymentModalOpen,
@@ -26,14 +26,20 @@ const PaymentModal = ({
 
     const items = Array.isArray(cartItems) ? cartItems : [];
 
+    // Clear interval on unmount
     useEffect(() => {
-        return () => clearInterval(pollIntervalRef.current);
+        return () => {
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+            }
+        };
     }, []);
 
+    // Don't render if modal is closed
     if (!isPaymentModalOpen) return null;
 
     // ── Validation ────────────────────────────────────────────────────────────
-    const validate = useCallback(() => {
+    const validate = () => {
         const e = {};
         if (!formData.fullName.trim()) e.fullName = 'Full name is required';
         if (!formData.email.trim()) {
@@ -47,13 +53,14 @@ const PaymentModal = ({
             e.phoneNumber = 'Enter a valid phone number (e.g. 0712345678)';
         }
         return e;
-    }, [formData]);
+    };
 
     // ── Poll /payment/status/:externalReference ───────────────────────────────
-    const startPolling = useCallback((externalRef) => {
+    const startPolling = (externalRef) => {
         let attempts = 0;
         const MAX_ATTEMPTS = 24;
 
+        // Clear any existing interval
         if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
         }
@@ -86,14 +93,14 @@ const PaymentModal = ({
                 // Network hiccup — keep polling silently
             }
         }, 5000);
-    }, [API_BASE_URL]);
+    };
 
     // ── Initiate STK push ─────────────────────────────────────────────────────
-    const handleSubmit = useCallback(async () => {
+    const handleSubmit = async () => {
         const newErrors = validate();
-        if (Object.keys(newErrors).length > 0) { 
-            setErrors(newErrors); 
-            return; 
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
         }
 
         setStep('waiting');
@@ -129,39 +136,116 @@ const PaymentModal = ({
             setStep('failed');
             setStatusMessage('Network error. Please check your connection and try again.');
         }
-    }, [validate, API_BASE_URL, formData, cartTotal, items, sessionId, startPolling]);
+    };
 
     // ── Handle input change ──────────────────────────────────────────────────
-    const handleInputChange = useCallback((e) => {
+    const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
-    }, [errors]);
+    };
 
-    const handlePaymentMethodChange = useCallback((method) => {
+    const handlePaymentMethodChange = (method) => {
         setFormData(prev => ({ ...prev, paymentMethod: method }));
-    }, []);
+    };
 
-    const resetModal = useCallback(() => {
-        clearInterval(pollIntervalRef.current);
+    const resetModal = () => {
+        if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+        }
         setStep('form');
         setErrors({});
         setReference(null);
         setStatusMessage('');
         setFormData({ fullName: '', email: '', phoneNumber: '', paymentMethod: 'mpesa' });
-    }, []);
+    };
 
-    const handleClose = useCallback(() => {
+    const handleClose = () => {
         resetModal();
         setIsPaymentModalOpen(false);
         if (setIsCartOpen) setIsCartOpen(false);
         if (closeCart) closeCart();
-    }, [resetModal, setIsPaymentModalOpen, setIsCartOpen, closeCart]);
+    };
 
-    // ── FIXED: FormView - Memoized to prevent re-render issues ──────────────
-    const FormView = useMemo(() => (
+    // ── Render views ──────────────────────────────────────────────────────────
+
+    const SuccessView = () => (
+        <div className="text-center py-10 px-4">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <h3 className="text-xl font-bold text-[#0f172a]">Payment Successful!</h3>
+            <p className="text-[#64748b] mt-2 text-sm">
+                We'll send your tickets to <strong>{formData.email}</strong> shortly.
+            </p>
+            <button
+                onClick={handleClose}
+                className="mt-6 px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+                Done
+            </button>
+        </div>
+    );
+
+    const FailedView = () => (
+        <div className="text-center py-10 px-4">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </div>
+            <h3 className="text-xl font-bold text-[#0f172a]">Payment Failed</h3>
+            <p className="text-[#64748b] mt-2 text-sm">{statusMessage}</p>
+            <div className="flex gap-3 mt-6 justify-center">
+                <button
+                    onClick={resetModal}
+                    className="px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                >
+                    Try Again
+                </button>
+                <button
+                    onClick={handleClose}
+                    className="px-6 py-2 border border-[#e2e8f0] text-[#64748b] hover:text-[#0f172a] rounded-lg text-sm font-semibold transition-colors"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    );
+
+    const WaitingView = () => (
+        <div className="text-center py-10 px-4">
+            <div className="relative w-20 h-20 mx-auto mb-6">
+                <div className="absolute inset-0 rounded-full bg-teal-100 animate-ping opacity-50" />
+                <div className="relative w-20 h-20 bg-teal-50 rounded-full flex items-center justify-center">
+                    <svg className="w-9 h-9 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"
+                            d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                </div>
+            </div>
+            <h3 className="text-xl font-bold text-[#0f172a]">Check Your Phone</h3>
+            <p className="text-[#64748b] mt-2 text-sm max-w-xs mx-auto">{statusMessage}</p>
+            <div className="mt-6 bg-teal-50 border border-teal-200 rounded-lg p-4 text-left text-xs text-teal-700 space-y-1">
+                <p><strong>Amount:</strong> KES {cartTotal?.toLocaleString()}</p>
+                <p><strong>Phone:</strong> {formData.phoneNumber}</p>
+                {reference && <p><strong>Ref:</strong> {reference}</p>}
+            </div>
+            <p className="text-xs text-[#94a3b8] mt-4">Waiting for confirmation… this usually takes under 30 seconds.</p>
+            <button
+                onClick={resetModal}
+                className="mt-5 text-xs text-[#94a3b8] hover:text-[#64748b] underline underline-offset-2"
+            >
+                Cancel and go back
+            </button>
+        </div>
+    );
+
+    const FormView = () => (
         <>
             <div className="flex justify-between items-center mb-5">
                 <h2 className="text-2xl font-bold text-[#0f172a]">Complete Payment</h2>
@@ -288,90 +372,15 @@ const PaymentModal = ({
                 You'll receive an STK push on your phone to confirm payment.
             </p>
         </>
-    ), [items, cartTotal, formData, errors, handleClose, handlePaymentMethodChange, handleInputChange, handleSubmit]);
-
-    // Memoized views
-    const SuccessView = useMemo(() => (
-        <div className="text-center py-10 px-4">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                </svg>
-            </div>
-            <h3 className="text-xl font-bold text-[#0f172a]">Payment Successful!</h3>
-            <p className="text-[#64748b] mt-2 text-sm">
-                We'll send your tickets to <strong>{formData.email}</strong> shortly.
-            </p>
-            <button
-                onClick={handleClose}
-                className="mt-6 px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-semibold transition-colors"
-            >
-                Done
-            </button>
-        </div>
-    ), [formData.email, handleClose]);
-
-    const FailedView = useMemo(() => (
-        <div className="text-center py-10 px-4">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </div>
-            <h3 className="text-xl font-bold text-[#0f172a]">Payment Failed</h3>
-            <p className="text-[#64748b] mt-2 text-sm">{statusMessage}</p>
-            <div className="flex gap-3 mt-6 justify-center">
-                <button
-                    onClick={resetModal}
-                    className="px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-semibold transition-colors"
-                >
-                    Try Again
-                </button>
-                <button
-                    onClick={handleClose}
-                    className="px-6 py-2 border border-[#e2e8f0] text-[#64748b] hover:text-[#0f172a] rounded-lg text-sm font-semibold transition-colors"
-                >
-                    Cancel
-                </button>
-            </div>
-        </div>
-    ), [statusMessage, resetModal, handleClose]);
-
-    const WaitingView = useMemo(() => (
-        <div className="text-center py-10 px-4">
-            <div className="relative w-20 h-20 mx-auto mb-6">
-                <div className="absolute inset-0 rounded-full bg-teal-100 animate-ping opacity-50" />
-                <div className="relative w-20 h-20 bg-teal-50 rounded-full flex items-center justify-center">
-                    <svg className="w-9 h-9 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"
-                            d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                </div>
-            </div>
-            <h3 className="text-xl font-bold text-[#0f172a]">Check Your Phone</h3>
-            <p className="text-[#64748b] mt-2 text-sm max-w-xs mx-auto">{statusMessage}</p>
-            <div className="mt-6 bg-teal-50 border border-teal-200 rounded-lg p-4 text-left text-xs text-teal-700 space-y-1">
-                <p><strong>Amount:</strong> KES {cartTotal?.toLocaleString()}</p>
-                <p><strong>Phone:</strong> {formData.phoneNumber}</p>
-                {reference && <p><strong>Ref:</strong> {reference}</p>}
-            </div>
-            <p className="text-xs text-[#94a3b8] mt-4">Waiting for confirmation… this usually takes under 30 seconds.</p>
-            <button
-                onClick={resetModal}
-                className="mt-5 text-xs text-[#94a3b8] hover:text-[#64748b] underline underline-offset-2"
-            >
-                Cancel and go back
-            </button>
-        </div>
-    ), [statusMessage, cartTotal, reference, formData.phoneNumber, resetModal]);
+    );
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[8px] p-4">
             <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-                {step === 'form'    && FormView}
-                {step === 'waiting' && WaitingView}
-                {step === 'success' && SuccessView}
-                {step === 'failed'  && FailedView}
+                {step === 'form' && <FormView />}
+                {step === 'waiting' && <WaitingView />}
+                {step === 'success' && <SuccessView />}
+                {step === 'failed' && <FailedView />}
             </div>
         </div>
     );
